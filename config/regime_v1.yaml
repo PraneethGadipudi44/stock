@@ -1,0 +1,58 @@
+# Regime Engine v1 thresholds (initial defaults; tune before production use)
+version: "regime_v1"
+defaults_policy: "conservative"
+
+units:
+  pct_scale: "0-100"
+  rs_20d: "percent_change"
+  slope_20d: "percent_change"
+  chop_score: "CHOP 0-100"
+
+thresholds:
+  trend:
+    basket_above_50dma_up: 60.0
+    basket_above_50dma_down: 40.0
+    basket_above_200dma_up: 60.0
+    basket_above_200dma_down: 40.0
+    ma50_slope_20d_up: 1.0
+    ma50_slope_20d_down: -1.0
+    chop_high: 61.8
+    chop_low: 38.2
+    trend_score_pass: 65.0
+    score_weights:
+      position: 0.4
+      slope: 0.4
+      chop: 0.2
+  vol:
+    vix_pct_high: 80.0
+    vix_pct_low: 20.0
+    realized_vol_20d_pct_high: 80.0
+    realized_vol_20d_pct_low: 20.0
+  risk:
+    hyg_lqd_rs_20d_pos: 1.0
+    hyg_lqd_rs_20d_neg: -1.0
+    spy_tlt_rs_20d_pos: 1.0
+    spy_tlt_rs_20d_neg: -1.0
+  transition:
+    vote_disagreement_score_cutoff: 0.5
+    recent_change_window_days_cutoff: 10
+    disagreement_weights:
+      trend_not_passed: 0.5
+      risk_neutral: 0.3
+      vol_high: 0.3
+      recent_change: 0.2
+
+confidence:
+  vote_weights:
+    trend: 0.4
+    vol: 0.3
+    risk: 0.3
+  penalties:
+    vol_high: 15.0
+    risk_off: 10.0
+    transition: 20.0
+    disagreement_per_point: 10.0
+    recent_change: 10.0
+  bounds:
+    min: 0
+    max: 100
