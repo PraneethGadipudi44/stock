@@ -1,8 +1,12 @@
-usage: cli.py tune [-h] [--cfg CFG] [--prices PRICES] --out OUT [--no-clobber]
+usage: cli.py tune [-h] [--cfg CFG] [--prices PRICES] [--explain [EXPLAIN]]
+                   [--explain-dir EXPLAIN_DIR] --out OUT [--no-clobber]
 
 options:
-  -h, --help       show this help message and exit
-  --cfg CFG        Path to regime config
-  --prices PRICES  Optional prices CSV for replay summary
-  --out OUT        Output CSV path for tuning results
-  --no-clobber     Fail if output file already exists.
+  -h, --help            show this help message and exit
+  --cfg CFG             Path to regime config
+  --prices PRICES       Optional prices CSV for replay summary
+  --explain [EXPLAIN]   Write tuning explain JSON to path (or '-' for stdout).
+  --explain-dir EXPLAIN_DIR
+                        Write per-scenario explain JSON files to DIR.
+  --out OUT             Output CSV path for tuning results
+  --no-clobber          Fail if output file already exists.

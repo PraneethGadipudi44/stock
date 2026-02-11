@@ -277,3 +277,27 @@ def run_harness(cfg_path: Optional[str] = None) -> List[Dict[str, object]]:
             }
         )
     return rows
+
+
+def run_harness_snapshots(cfg_path: Optional[str] = None) -> List[Dict[str, object]]:
+    entries: List[Dict[str, object]] = []
+    for scenario in _scenarios():
+        meta = _base_meta(scenario["name"])
+        meta_override = scenario.get("meta") or {}
+        if "metrics_snapshot" in meta_override:
+            meta_metrics = dict(meta["metrics_snapshot"])
+            meta_metrics.update(meta_override["metrics_snapshot"])
+            meta["metrics_snapshot"] = meta_metrics
+            meta_override = dict(meta_override)
+            meta_override.pop("metrics_snapshot", None)
+        meta.update(meta_override)
+        output = run_snapshot(scenario["metrics"], meta, cfg_path=cfg_path)
+        payload = json.loads(output)
+        entries.append(
+            {
+                "scenario": scenario["name"],
+                "metrics": scenario["metrics"],
+                "snapshot": payload,
+            }
+        )
+    return entries

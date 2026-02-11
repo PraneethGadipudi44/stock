@@ -14,7 +14,7 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from .config import load_regime_config, validate_regime_config
 from .engine import build_regime_snapshot
-from .explain import explain_json
+from .explain import build_explain_payload, explain_json
 from .metrics_builder import MetricsBuildError, build_metrics_from_prices
 from .models import RegimeSnapshot
 from .prices_io import PriceRow, PricesIOError, read_prices_csv, rows_to_records
@@ -124,6 +124,18 @@ def main(argv: Optional[List[str]] = None) -> int:
     tune_parser.add_argument("--cfg", default="", help="Path to regime config")
     tune_parser.add_argument(
         "--prices", default="", help="Optional prices CSV for replay summary"
+    )
+    tune_parser.add_argument(
+        "--explain",
+        nargs="?",
+        const="-",
+        default="",
+        help="Write tuning explain JSON to path (or '-' for stdout).",
+    )
+    tune_parser.add_argument(
+        "--explain-dir",
+        default="",
+        help="Write per-scenario explain JSON files to DIR.",
     )
     tune_parser.add_argument(
         "--out", required=True, help="Output CSV path for tuning results"
@@ -330,6 +342,8 @@ def _run_tune(args: argparse.Namespace) -> int:
         rows.extend(replay_rows)
 
     _write_csv(rows, args.out, args.no_clobber)
+    if args.explain or args.explain_dir:
+        _write_tune_explain(args, cfg_path)
     return 0
 
 
@@ -360,6 +374,78 @@ def _run_harness(cfg_path: Optional[str]) -> List[Dict[str, Any]]:
     from .tuning_harness import run_harness
 
     return run_harness(cfg_path)
+
+
+def _run_harness_snapshots(cfg_path: Optional[str]) -> List[Dict[str, Any]]:
+    from .tuning_harness import run_harness_snapshots
+
+    return run_harness_snapshots(cfg_path)
+
+
+def _write_tune_explain(args: argparse.Namespace, cfg_path: Optional[str]) -> None:
+    cfg = _load_cfg(args.cfg)
+    resolved_cfg = _resolve_cfg_path(args.cfg)
+    cfg_source = resolved_cfg if resolved_cfg else "packaged"
+
+    explain_dir = Path(args.explain_dir) if args.explain_dir else None
+    if explain_dir:
+        explain_dir.mkdir(parents=True, exist_ok=True)
+
+    scenarios = _run_harness_snapshots(cfg_path)
+    summaries = []
+    config_hash = ""
+
+    for entry in scenarios:
+        scenario = entry["scenario"]
+        metrics = entry["metrics"]
+        snapshot = dict(entry["snapshot"])
+        snapshot["snapshot_id"] = _deterministic_snapshot_id(snapshot)
+        explain_payload = build_explain_payload(
+            snapshot, metrics, cfg, cfg_source, resolved_cfg
+        )
+        explain_payload["scenario"] = scenario
+        explain_payload["snapshot"] = snapshot
+        config_hash = str(explain_payload.get("config_hash", config_hash))
+
+        explain_text = json.dumps(explain_payload, indent=2, sort_keys=True)
+        if explain_dir:
+            filename = f"{scenario}_{snapshot['snapshot_id']}.explain.json"
+            _write_text(explain_dir / filename, explain_text, args.no_clobber)
+
+        if args.explain:
+            metrics_snapshot = snapshot.get("metrics_snapshot", {})
+            breakdown = explain_payload.get("confidence_breakdown", {})
+            summaries.append(
+                {
+                    "scenario": scenario,
+                    "snapshot_id": snapshot.get("snapshot_id"),
+                    "market_phase": snapshot.get("market_phase"),
+                    "trend_regime": snapshot.get("trend_regime"),
+                    "vol_regime": snapshot.get("vol_regime"),
+                    "risk_tone": snapshot.get("risk_tone"),
+                    "confidence": snapshot.get("confidence"),
+                    "vote_disagreement_score": metrics_snapshot.get(
+                        "vote_disagreement_score"
+                    ),
+                    "recent_change_window_days": metrics_snapshot.get(
+                        "recent_change_window_days"
+                    ),
+                    "penalties": breakdown.get("penalties"),
+                }
+            )
+
+    if args.explain:
+        report = {
+            "config_source": cfg_source,
+            "config_hash": config_hash,
+            "scenario_count": len(summaries),
+            "scenarios": summaries,
+        }
+        explain_report = json.dumps(report, indent=2, sort_keys=True)
+        if args.explain == "-":
+            print(explain_report)
+        else:
+            _write_text(Path(args.explain), explain_report, args.no_clobber)
 
 
 def _run_replay_summary(cfg_path: Optional[str], prices_path: str) -> List[Dict[str, Any]]:
@@ -567,6 +653,13 @@ def _apply_deterministic_id(snapshot: RegimeSnapshot) -> RegimeSnapshot:
     raw = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     digest = sha256(raw.encode("utf-8")).hexdigest()[:32]
     return replace(snapshot, snapshot_id=digest)
+
+
+def _deterministic_snapshot_id(payload: Dict[str, Any]) -> str:
+    scrubbed = dict(payload)
+    scrubbed.pop("snapshot_id", None)
+    raw = json.dumps(scrubbed, sort_keys=True, separators=(",", ":"))
+    return sha256(raw.encode("utf-8")).hexdigest()[:32]
 
 
 def _eprint(message: str) -> None:
