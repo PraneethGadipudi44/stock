@@ -1,5 +1,5 @@
 usage: cli.py snapshot [-h] [--cfg CFG] --prices PRICES [--out OUT]
-                       [--store STORE] [--no-clobber]
+                       [--explain [EXPLAIN]] [--store STORE] [--no-clobber]
                        [--session {premarket,open,midday,close,afterhours}]
                        [--benchmarks BENCHMARKS] [--reasoning REASONING]
                        [--recent-change-window-days RECENT_CHANGE_WINDOW_DAYS]
@@ -10,6 +10,7 @@ options:
   --cfg CFG             Path to regime config
   --prices PRICES       Path to prices CSV
   --out OUT             Optional output JSON path
+  --explain [EXPLAIN]   Write explain JSON to path (or '-' for stdout).
   --store STORE         Optional store directory
   --no-clobber          Fail if output file already exists.
   --session {premarket,open,midday,close,afterhours}

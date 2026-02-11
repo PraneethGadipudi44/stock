@@ -14,6 +14,7 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from .config import load_regime_config, validate_regime_config
 from .engine import build_regime_snapshot
+from .explain import explain_json
 from .metrics_builder import MetricsBuildError, build_metrics_from_prices
 from .models import RegimeSnapshot
 from .prices_io import PriceRow, PricesIOError, read_prices_csv, rows_to_records
@@ -53,6 +54,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     snapshot_parser.add_argument("--cfg", default="", help="Path to regime config")
     snapshot_parser.add_argument("--prices", required=True, help="Path to prices CSV")
     snapshot_parser.add_argument("--out", default="", help="Optional output JSON path")
+    snapshot_parser.add_argument(
+        "--explain",
+        nargs="?",
+        const="-",
+        default="",
+        help="Write explain JSON to path (or '-' for stdout).",
+    )
     snapshot_parser.add_argument("--store", default="", help="Optional store directory")
     snapshot_parser.add_argument(
         "--no-clobber",
@@ -178,11 +186,25 @@ def _run_snapshot(args: argparse.Namespace) -> int:
         meta["inputs_hash"] = args.inputs_hash
 
     snapshot_json = _build_snapshot_json(metrics, meta, cfg)
+    snapshot_payload = json.loads(snapshot_json)
 
     if args.out:
         _write_text(Path(args.out), snapshot_json, args.no_clobber)
     else:
         print(snapshot_json)
+
+    if args.explain:
+        if args.explain == "-" and not args.out:
+            raise BadInputError("Use --out when --explain writes to stdout.")
+        resolved_cfg = _resolve_cfg_path(args.cfg)
+        cfg_source = resolved_cfg if resolved_cfg else "packaged"
+        explain_output = explain_json(
+            snapshot_payload, metrics, cfg, cfg_source, resolved_cfg
+        )
+        if args.explain == "-":
+            print(explain_output)
+        else:
+            _write_text(Path(args.explain), explain_output, args.no_clobber)
 
     store_dir = _resolve_store_dir(args.store)
     if store_dir:
