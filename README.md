@@ -3,6 +3,8 @@
 Audit-grade regime engine with deterministic outputs, contract-locked snapshots,
 and conservative defaults.
 
+Status: v1.0 Stable (contracts locked, deterministic, invariant-enforced).
+
 ## Install
 1. Create a virtual environment:
    - Windows: `python -m venv .venv` then `.venv\Scripts\activate`
