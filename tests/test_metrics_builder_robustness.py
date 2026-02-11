@@ -34,7 +34,7 @@ def _rows(name: str):
 def test_missing_days_detected():
     cfg = _cfg()
     rows = _rows("prices_missing_days.csv")
-    with pytest.raises(MetricsBuildError, match="Missing days for SPY.*gap"):
+    with pytest.raises(MetricsBuildError, match="Missing days for .*gap"):
         build_metrics_from_prices(rows, cfg)
 
 
@@ -57,6 +57,13 @@ def test_overlap_short_detected():
 def test_extra_ticker_ignored():
     cfg = _cfg()
     rows = _rows("prices_extra_ticker_sparse.csv")
+    metrics = build_metrics_from_prices(rows, cfg)
+    assert set(metrics.keys()) == REQUIRED_KEYS
+
+
+def test_weekend_gap_ok():
+    cfg = _cfg()
+    rows = _rows("prices_weekend_gap_ok.csv")
     metrics = build_metrics_from_prices(rows, cfg)
     assert set(metrics.keys()) == REQUIRED_KEYS
 

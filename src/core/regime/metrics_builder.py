@@ -234,11 +234,12 @@ def _assert_no_date_gaps(
     tickers: Iterable[str],
     as_of_date: date,
 ) -> None:
+    allowed_gaps = {1, 2, 3}
     for ticker in tickers:
         dates = [row_date for row_date, _ in series[ticker] if row_date <= as_of_date]
         for prev, curr in zip(dates, dates[1:]):
             gap_days = (curr - prev).days
-            if gap_days > 1:
+            if gap_days not in allowed_gaps:
                 raise MetricsBuildError(
                     f"Missing days for {ticker}: {prev} -> {curr} "
                     f"(gap {gap_days} days)."
