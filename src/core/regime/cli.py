@@ -105,6 +105,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--out", default="", help="Optional output CSV path"
     )
     replay_parser.add_argument(
+        "--explain-dir",
+        default="",
+        help="Write per-day explain JSON files to DIR.",
+    )
+    replay_parser.add_argument(
         "--no-clobber",
         action="store_true",
         help="Fail if output file already exists.",
@@ -237,6 +242,11 @@ def _run_replay(args: argparse.Namespace) -> int:
     store_path.mkdir(parents=True, exist_ok=True)
     store = JsonlSnapshotStore(store_path, cfg_path=_cfg_path_obj(args.cfg))
     summary_rows = []
+    explain_dir = Path(args.explain_dir) if args.explain_dir else None
+    if explain_dir:
+        explain_dir.mkdir(parents=True, exist_ok=True)
+        resolved_cfg = _resolve_cfg_path(args.cfg)
+        cfg_source = resolved_cfg if resolved_cfg else "packaged"
 
     previous: Optional[RegimeSnapshot] = None
     days_since_change = 999
@@ -273,6 +283,15 @@ def _run_replay(args: argparse.Namespace) -> int:
                 store.append(snapshot_json)
         except StoreIntegrityError as exc:
             raise BadInputError(f"Store error: {exc}") from exc
+
+        if explain_dir:
+            explain_output = explain_json(
+                payload, metrics, cfg, cfg_source, resolved_cfg
+            )
+            explain_path = explain_dir / (
+                f"{current_date.isoformat()}_{snapshot.snapshot_id}.explain.json"
+            )
+            _write_text(explain_path, explain_output, args.no_clobber)
 
         summary_rows.append(
             {

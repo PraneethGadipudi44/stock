@@ -1,5 +1,6 @@
 usage: cli.py replay [-h] [--cfg CFG] --prices PRICES [--store STORE]
-                     --start START --end END [--out OUT] [--no-clobber]
+                     --start START --end END [--out OUT]
+                     [--explain-dir EXPLAIN_DIR] [--no-clobber]
                      [--session {premarket,open,midday,close,afterhours}]
 
 options:
@@ -10,5 +11,7 @@ options:
   --start START         Start date (YYYY-MM-DD)
   --end END             End date (YYYY-MM-DD)
   --out OUT             Optional output CSV path
+  --explain-dir EXPLAIN_DIR
+                        Write per-day explain JSON files to DIR.
   --no-clobber          Fail if output file already exists.
   --session {premarket,open,midday,close,afterhours}
