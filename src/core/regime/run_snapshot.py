@@ -17,6 +17,7 @@ def _snapshot_to_dict(snapshot: RegimeSnapshot) -> Dict[str, Any]:
     extra = _metrics_extra_for_payload(snapshot.metrics_snapshot.extra)
     payload = {
         "snapshot_id": snapshot.snapshot_id,
+        "schema_version": 1,
         "as_of_ts": format_as_of_ts(snapshot.as_of_ts),
         "session": snapshot.session,
         "engine_version": snapshot.engine_version,

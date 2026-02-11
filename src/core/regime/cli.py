@@ -19,7 +19,7 @@ from .models import RegimeSnapshot
 from .prices_io import PriceRow, PricesIOError, read_prices_csv, rows_to_records
 from .resources import default_config_path
 from .run_snapshot import _snapshot_to_dict
-from .store import JsonlSnapshotStore
+from .store import JsonlSnapshotStore, StoreIntegrityError
 
 DEBUG = False
 
@@ -187,7 +187,10 @@ def _run_snapshot(args: argparse.Namespace) -> int:
     store_dir = _resolve_store_dir(args.store)
     if store_dir:
         store = JsonlSnapshotStore(Path(store_dir), cfg_path=_cfg_path_obj(args.cfg))
-        store.append(snapshot_json)
+        try:
+            store.append(snapshot_json, no_clobber=args.no_clobber)
+        except StoreIntegrityError as exc:
+            raise BadInputError(f"Store error: {exc}") from exc
 
     return 0
 
@@ -236,15 +239,18 @@ def _run_replay(args: argparse.Namespace) -> int:
         snapshot = _apply_deterministic_id(snapshot)
         payload = _snapshot_to_dict(snapshot)
         snapshot_json = json.dumps(payload, sort_keys=True, indent=2)
-        existing = store.get(snapshot.snapshot_id)
-        if existing is not None:
-            if args.no_clobber:
-                raise BadInputError(
-                    f"Snapshot {snapshot.snapshot_id} already exists in store."
-                )
-            store._write_latest(existing)
-        else:
-            store.append(snapshot_json)
+        try:
+            existing = store.get(snapshot.snapshot_id)
+            if existing is not None:
+                if args.no_clobber:
+                    raise BadInputError(
+                        f"Snapshot {snapshot.snapshot_id} already exists in store."
+                    )
+                store._write_latest(existing)
+            else:
+                store.append(snapshot_json)
+        except StoreIntegrityError as exc:
+            raise BadInputError(f"Store error: {exc}") from exc
 
         summary_rows.append(
             {
@@ -296,7 +302,10 @@ def _run_report(args: argparse.Namespace) -> int:
                 "Provide --snapshot or set --store / EDS_REGIME_STORE_DIR."
             )
         store = JsonlSnapshotStore(Path(store_dir))
-        latest = store.latest()
+        try:
+            latest = store.latest()
+        except StoreIntegrityError as exc:
+            raise BadInputError(f"Store error: {exc}") from exc
         if latest is None:
             raise BadInputError("No snapshots found in store.")
         snapshot = latest["snapshot"]

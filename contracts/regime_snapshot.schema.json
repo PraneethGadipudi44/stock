@@ -6,6 +6,7 @@
   "additionalProperties": false,
   "required": [
     "snapshot_id",
+    "schema_version",
     "as_of_ts",
     "session",
     "engine_version",
@@ -28,6 +29,11 @@
       "type": "string",
       "minLength": 8,
       "description": "Unique identifier for this snapshot."
+    },
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version for this snapshot payload."
     },
     "as_of_ts": {
       "type": "string",

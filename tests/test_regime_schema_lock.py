@@ -11,6 +11,7 @@ def test_regime_snapshot_schema_lock():
 
     expected_required = {
         "snapshot_id",
+        "schema_version",
         "as_of_ts",
         "session",
         "engine_version",
@@ -32,6 +33,7 @@ def test_regime_snapshot_schema_lock():
 
     props = schema["properties"]
     assert props["snapshot_id"]["minLength"] == 8
+    assert props["schema_version"]["const"] == 1
     assert props["reasoning"]["minItems"] == 3
     assert props["reasoning"]["maxItems"] == 5
     assert props["reasoning"]["items"]["minLength"] == 3
