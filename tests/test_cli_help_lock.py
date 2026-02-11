@@ -30,6 +30,7 @@ def test_cli_help_snapshot_lock():
         "replay": "help_replay.txt",
         "tune": "help_tune.txt",
         "report": "help_report.txt",
+        "strategy": "help_strategy.txt",
     }
     for subcmd, fixture in targets.items():
         assert _run_help(subcmd) == _load_fixture(fixture)

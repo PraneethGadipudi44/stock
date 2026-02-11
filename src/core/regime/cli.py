@@ -21,6 +21,12 @@ from .prices_io import PriceRow, PricesIOError, read_prices_csv, rows_to_records
 from .resources import default_config_path
 from .run_snapshot import _snapshot_to_dict
 from .store import JsonlSnapshotStore, StoreIntegrityError
+from .strategy import (
+    load_strategy_config,
+    strategy_config_hash,
+    strategy_json,
+    validate_strategy_config,
+)
 
 DEBUG = False
 
@@ -154,6 +160,40 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--store", default="", help="Store directory (uses latest.json)"
     )
 
+    strategy_parser = subparsers.add_parser(
+        "strategy", help="Build a strategy recommendation"
+    )
+    strategy_parser.add_argument(
+        "--snapshot",
+        default="",
+        help="Path to snapshot JSON (or '-' for stdin)",
+    )
+    strategy_parser.add_argument(
+        "--store",
+        default="",
+        help="Store directory (use with --latest)",
+    )
+    strategy_parser.add_argument(
+        "--latest",
+        action="store_true",
+        help="Use latest snapshot from store",
+    )
+    strategy_parser.add_argument(
+        "--cfg",
+        default="",
+        help="Path to strategy config",
+    )
+    strategy_parser.add_argument(
+        "--out",
+        default="",
+        help="Output strategy JSON path (or '-' for stdout)",
+    )
+    strategy_parser.add_argument(
+        "--no-clobber",
+        action="store_true",
+        help="Fail if output file already exists.",
+    )
+
     args = parser.parse_args(argv)
     global DEBUG
     DEBUG = bool(args.debug)
@@ -167,6 +207,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             return _run_tune(args)
         if args.command == "report":
             return _run_report(args)
+        if args.command == "strategy":
+            return _run_strategy(args)
         return 1
     except CliError as exc:
         _eprint(str(exc))
@@ -367,6 +409,44 @@ def _run_report(args: argparse.Namespace) -> int:
 
     report = _format_report(snapshot)
     print(report)
+    return 0
+
+
+def _run_strategy(args: argparse.Namespace) -> int:
+    if args.snapshot and args.latest:
+        raise BadInputError("Use either --snapshot or --latest, not both.")
+
+    snapshot: Dict[str, Any]
+    if args.snapshot:
+        if args.snapshot == "-":
+            snapshot = json.loads(sys.stdin.read())
+        else:
+            snapshot = json.loads(Path(args.snapshot).read_text(encoding="utf-8"))
+    else:
+        if not args.latest:
+            raise BadInputError("Provide --snapshot or --store with --latest.")
+        store_dir = _resolve_store_dir(args.store)
+        if not store_dir:
+            raise BadInputError("Store directory is required for --latest.")
+        store = JsonlSnapshotStore(Path(store_dir))
+        try:
+            latest = store.latest()
+        except StoreIntegrityError as exc:
+            raise BadInputError(f"Store error: {exc}") from exc
+        if latest is None:
+            raise BadInputError("No snapshots found in store.")
+        snapshot = latest["snapshot"]
+
+    cfg_path = _resolve_cfg_path(args.cfg)
+    cfg_source = cfg_path if cfg_path else "packaged"
+    cfg = validate_strategy_config(load_strategy_config(cfg_path))
+    cfg_hash = strategy_config_hash(cfg_path)
+    output = strategy_json(snapshot, cfg, cfg_source, cfg_hash)
+
+    if args.out and args.out != "-":
+        _write_text(Path(args.out), output, args.no_clobber)
+    else:
+        print(output)
     return 0
 
 

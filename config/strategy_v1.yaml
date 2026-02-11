@@ -1,0 +1,17 @@
+version: strategy_v1
+thresholds:
+  min_confidence: 40.0
+  trend_confidence: 65.0
+  range_confidence: 55.0
+actions:
+  transition: do_nothing
+  low_confidence: observe_only
+  risk_on: risk_on
+  reduce_risk: reduce_risk
+  fallback: observe_only
+playbooks:
+  none: none
+  capital_preservation: capital_preservation
+  trend_follow: trend_follow
+  mean_revert: mean_revert
+  tactical_breakout: tactical_breakout

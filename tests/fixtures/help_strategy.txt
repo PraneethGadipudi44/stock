@@ -1,0 +1,11 @@
+usage: cli.py strategy [-h] [--snapshot SNAPSHOT] [--store STORE] [--latest]
+                       [--cfg CFG] [--out OUT] [--no-clobber]
+
+options:
+  -h, --help           show this help message and exit
+  --snapshot SNAPSHOT  Path to snapshot JSON (or '-' for stdin)
+  --store STORE        Store directory (use with --latest)
+  --latest             Use latest snapshot from store
+  --cfg CFG            Path to strategy config
+  --out OUT            Output strategy JSON path (or '-' for stdout)
+  --no-clobber         Fail if output file already exists.
