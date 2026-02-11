@@ -386,6 +386,7 @@ def _write_tune_explain(args: argparse.Namespace, cfg_path: Optional[str]) -> No
     cfg = _load_cfg(args.cfg)
     resolved_cfg = _resolve_cfg_path(args.cfg)
     cfg_source = resolved_cfg if resolved_cfg else "packaged"
+    cfg_source_norm = cfg_source.replace("\\", "/")
 
     explain_dir = Path(args.explain_dir) if args.explain_dir else None
     if explain_dir:
@@ -401,7 +402,7 @@ def _write_tune_explain(args: argparse.Namespace, cfg_path: Optional[str]) -> No
         snapshot = dict(entry["snapshot"])
         snapshot["snapshot_id"] = _deterministic_snapshot_id(snapshot)
         explain_payload = build_explain_payload(
-            snapshot, metrics, cfg, cfg_source, resolved_cfg
+            snapshot, metrics, cfg, cfg_source_norm, resolved_cfg
         )
         explain_payload["scenario"] = scenario
         explain_payload["snapshot"] = snapshot
@@ -436,7 +437,7 @@ def _write_tune_explain(args: argparse.Namespace, cfg_path: Optional[str]) -> No
 
     if args.explain:
         report = {
-            "config_source": cfg_source,
+            "config_source": cfg_source_norm,
             "config_hash": config_hash,
             "scenario_count": len(summaries),
             "scenarios": summaries,

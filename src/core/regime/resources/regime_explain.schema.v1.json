@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/regime_explain.schema.v1.json",
+  "title": "RegimeExplain",
+  "type": "object",
+  "additionalProperties": true,
+  "oneOf": [
+    { "$ref": "#/$defs/SnapshotExplain" },
+    { "$ref": "#/$defs/TuneExplain" }
+  ],
+  "$defs": {
+    "BaseExplain": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "schema_version",
+        "snapshot_id",
+        "snapshot_schema_version",
+        "as_of_ts",
+        "engine_version",
+        "config_source",
+        "config_hash",
+        "metrics",
+        "signal_votes",
+        "confidence_breakdown"
+      ],
+      "properties": {
+        "schema_version": { "type": "integer", "const": 1 },
+        "snapshot_id": { "type": "string" },
+        "snapshot_schema_version": { "type": "integer" },
+        "as_of_ts": { "type": "string" },
+        "engine_version": { "type": "string" },
+        "config_source": { "type": "string" },
+        "config_hash": { "type": "string" },
+        "metrics": { "type": "object" },
+        "signal_votes": { "type": "object" },
+        "confidence_breakdown": { "type": "object" }
+      }
+    },
+    "SnapshotExplain": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseExplain" },
+        { "not": { "required": ["scenario", "snapshot"] } }
+      ]
+    },
+    "TuneExplain": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseExplain" },
+        {
+          "required": ["scenario", "snapshot"],
+          "properties": {
+            "scenario": { "type": "string" },
+            "snapshot": { "type": "object" }
+          }
+        }
+      ]
+    }
+  }
+}

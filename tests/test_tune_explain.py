@@ -61,3 +61,4 @@ def test_tune_explain_contains_required_keys(tmp_path: Path):
     assert "scenario" in payload
     assert "snapshot" in payload
     assert "confidence_breakdown" in payload
+    assert "schema_version" in payload

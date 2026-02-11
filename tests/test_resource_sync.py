@@ -12,6 +12,7 @@ def test_packaged_resources_match_repo_files():
         "regime_snapshot.schema.json": root / "contracts" / "regime_snapshot.schema.json",
         "regime_metrics_input.schema.v1.json": root / "contracts" / "regime_metrics_input.schema.v1.json",
         "regime_store_entry.schema.v1.json": root / "contracts" / "regime_store_entry.schema.v1.json",
+        "regime_explain.schema.v1.json": root / "contracts" / "regime_explain.schema.v1.json",
     }
 
     for name, path in mapping.items():

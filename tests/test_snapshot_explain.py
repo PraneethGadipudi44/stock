@@ -50,6 +50,7 @@ def test_snapshot_explain_contains_required_keys(tmp_path: Path):
     payload = json.loads(explain_path.read_text(encoding="utf-8"))
 
     required_keys = {
+        "schema_version",
         "snapshot_id",
         "snapshot_schema_version",
         "as_of_ts",

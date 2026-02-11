@@ -44,6 +44,10 @@ def _as_of_date(as_of_ts: str) -> str:
     return datetime.fromisoformat(as_of_ts).date().isoformat()
 
 
+def _normalize_source(value: str) -> str:
+    return value.replace("\\", "/")
+
+
 def _confidence_breakdown(
     snapshot: Dict[str, Any], cfg: Dict[str, Any]
 ) -> Dict[str, Any]:
@@ -142,13 +146,14 @@ def build_explain_payload(
     cfg_path: Optional[str],
 ) -> Dict[str, Any]:
     return {
+        "schema_version": 1,
         "snapshot_id": snapshot.get("snapshot_id"),
         "snapshot_schema_version": snapshot.get("schema_version"),
         "as_of_ts": snapshot.get("as_of_ts"),
         "as_of_date": _as_of_date(snapshot.get("as_of_ts", "")),
         "session": snapshot.get("session"),
         "engine_version": snapshot.get("engine_version"),
-        "config_source": cfg_source,
+        "config_source": _normalize_source(cfg_source),
         "config_hash": _hash_config(cfg_path),
         "inputs_hash": snapshot.get("inputs_hash"),
         "benchmarks": snapshot.get("benchmarks", []),

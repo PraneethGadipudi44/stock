@@ -1,0 +1,295 @@
+{
+  "config_hash": "71cd652991fc850a87f598a79b774e55d020673342ee80fc55324daba8f52b39",
+  "config_source": "tests/fixtures/regime_test_cfg.yaml",
+  "scenario_count": 16,
+  "scenarios": [
+    {
+      "confidence": 82.0,
+      "market_phase": "trend_up",
+      "penalties": {
+        "disagreement": 0.0,
+        "recent_change": 0.0,
+        "risk_off": 0.0,
+        "transition": 0.0,
+        "vol_high": 0.0
+      },
+      "recent_change_window_days": 20,
+      "risk_tone": "risk_on",
+      "scenario": "trend_up_normal",
+      "snapshot_id": "f6c7d884a309f27e267017ac918921a1",
+      "trend_regime": "trend_up",
+      "vol_regime": "normal",
+      "vote_disagreement_score": 0.0
+    },
+    {
+      "confidence": 72.0,
+      "market_phase": "trend_down",
+      "penalties": {
+        "disagreement": 0.0,
+        "recent_change": 0.0,
+        "risk_off": 10.0,
+        "transition": 0.0,
+        "vol_high": 0.0
+      },
+      "recent_change_window_days": 20,
+      "risk_tone": "risk_off",
+      "scenario": "trend_down_normal",
+      "snapshot_id": "ab95ef6dc7dba5782bb2988e633b93c9",
+      "trend_regime": "trend_down",
+      "vol_regime": "normal",
+      "vote_disagreement_score": 0.0
+    },
+    {
+      "confidence": 45.50000000000001,
+      "market_phase": "range",
+      "penalties": {
+        "disagreement": 3.0,
+        "recent_change": 0.0,
+        "risk_off": 0.0,
+        "transition": 0.0,
+        "vol_high": 0.0
+      },
+      "recent_change_window_days": 20,
+      "risk_tone": "neutral",
+      "scenario": "range_choppy",
+      "snapshot_id": "16efb98d77a9a0e7af481b28d79c6dd8",
+      "trend_regime": "range",
+      "vol_regime": "normal",
+      "vote_disagreement_score": 0.3
+    },
+    {
+      "confidence": 7.000000000000007,
+      "market_phase": "transition",
+      "penalties": {
+        "disagreement": 6.0,
+        "recent_change": 0.0,
+        "risk_off": 0.0,
+        "transition": 20.0,
+        "vol_high": 15.0
+      },
+      "recent_change_window_days": 20,
+      "risk_tone": "neutral",
+      "scenario": "transition_disagreement",
+      "snapshot_id": "6f8b1a60d051c1304c2af1f623cd74e6",
+      "trend_regime": "range",
+      "vol_regime": "high",
+      "vote_disagreement_score": 0.6
+    },
+    {
+      "confidence": 65.00000000000001,
+      "market_phase": "trend_down",
+      "penalties": {
+        "disagreement": 3.0,
+        "recent_change": 0.0,
+        "risk_off": 10.0,
+        "transition": 0.0,
+        "vol_high": 15.0
+      },
+      "recent_change_window_days": 20,
+      "risk_tone": "risk_off",
+      "scenario": "risk_off_vol_high",
+      "snapshot_id": "6a1862a0af9c22ee1f63f4b6c5df0245",
+      "trend_regime": "trend_down",
+      "vol_regime": "high",
+      "vote_disagreement_score": 0.3
+    },
+    {
+      "confidence": 73.6,
+      "market_phase": "trend_up",
+      "penalties": {
+        "disagreement": 0.0,
+        "recent_change": 0.0,
+        "risk_off": 0.0,
+        "transition": 0.0,
+        "vol_high": 0.0
+      },
+      "recent_change_window_days": 20,
+      "risk_tone": "risk_on",
+      "scenario": "vol_low_risk_on",
+      "snapshot_id": "c1226ed4ea27ad28796273a8ea827286",
+      "trend_regime": "trend_up",
+      "vol_regime": "low",
+      "vote_disagreement_score": 0.0
+    },
+    {
+      "confidence": 33.0,
+      "market_phase": "range",
+      "penalties": {
+        "disagreement": 3.0,
+        "recent_change": 0.0,
+        "risk_off": 0.0,
+        "transition": 0.0,
+        "vol_high": 0.0
+      },
+      "recent_change_window_days": 20,
+      "risk_tone": "neutral",
+      "scenario": "neutral_risk",
+      "snapshot_id": "73672953f9a12c0fb7c071fc6529428f",
+      "trend_regime": "range",
+      "vol_regime": "normal",
+      "vote_disagreement_score": 0.3
+    },
+    {
+      "confidence": 78.39999999999999,
+      "market_phase": "transition",
+      "penalties": {
+        "disagreement": 3.0,
+        "recent_change": 0.0,
+        "risk_off": 0.0,
+        "transition": 0.0,
+        "vol_high": 15.0
+      },
+      "recent_change_window_days": 20,
+      "risk_tone": "risk_on",
+      "scenario": "trend_up_vol_high",
+      "snapshot_id": "0c4304322d8fc4d4c03422db8fba263d",
+      "trend_regime": "trend_up",
+      "vol_regime": "high",
+      "vote_disagreement_score": 0.3
+    },
+    {
+      "confidence": 47.610169491525426,
+      "market_phase": "transition",
+      "penalties": {
+        "disagreement": 3.0,
+        "recent_change": 0.0,
+        "risk_off": 0.0,
+        "transition": 0.0,
+        "vol_high": 0.0
+      },
+      "recent_change_window_days": 20,
+      "risk_tone": "neutral",
+      "scenario": "trend_up_low_score_borderline",
+      "snapshot_id": "6eee1dc258366a105bf7eb322435306b",
+      "trend_regime": "trend_up",
+      "vol_regime": "normal",
+      "vote_disagreement_score": 0.3
+    },
+    {
+      "confidence": 47.610169491525426,
+      "market_phase": "transition",
+      "penalties": {
+        "disagreement": 3.0,
+        "recent_change": 0.0,
+        "risk_off": 0.0,
+        "transition": 0.0,
+        "vol_high": 0.0
+      },
+      "recent_change_window_days": 20,
+      "risk_tone": "neutral",
+      "scenario": "trend_down_low_score_borderline",
+      "snapshot_id": "13e6da55b8d27fa6d904e69ac74b076d",
+      "trend_regime": "trend_down",
+      "vol_regime": "normal",
+      "vote_disagreement_score": 0.3
+    },
+    {
+      "confidence": 35.22,
+      "market_phase": "range",
+      "penalties": {
+        "disagreement": 3.0,
+        "recent_change": 0.0,
+        "risk_off": 0.0,
+        "transition": 0.0,
+        "vol_high": 0.0
+      },
+      "recent_change_window_days": 20,
+      "risk_tone": "neutral",
+      "scenario": "chop_high_borderline",
+      "snapshot_id": "65fb1647a5cc3bbea31208c714377449",
+      "trend_regime": "range",
+      "vol_regime": "normal",
+      "vote_disagreement_score": 0.3
+    },
+    {
+      "confidence": 25.780000000000005,
+      "market_phase": "range",
+      "penalties": {
+        "disagreement": 3.0,
+        "recent_change": 0.0,
+        "risk_off": 0.0,
+        "transition": 0.0,
+        "vol_high": 0.0
+      },
+      "recent_change_window_days": 20,
+      "risk_tone": "neutral",
+      "scenario": "chop_low_borderline",
+      "snapshot_id": "c77e89b1a1de02077c576474559ea13c",
+      "trend_regime": "range",
+      "vol_regime": "normal",
+      "vote_disagreement_score": 0.3
+    },
+    {
+      "confidence": 26.0,
+      "market_phase": "transition",
+      "penalties": {
+        "disagreement": 6.0,
+        "recent_change": 0.0,
+        "risk_off": 0.0,
+        "transition": 20.0,
+        "vol_high": 15.0
+      },
+      "recent_change_window_days": 20,
+      "risk_tone": "neutral",
+      "scenario": "mixed_up_vol_high_risk_neutral",
+      "snapshot_id": "0528c266cde0f283a1dc606a3b0087cf",
+      "trend_regime": "trend_up",
+      "vol_regime": "high",
+      "vote_disagreement_score": 0.6
+    },
+    {
+      "confidence": 83.50000000000001,
+      "market_phase": "transition",
+      "penalties": {
+        "disagreement": 1.5,
+        "recent_change": 0.0,
+        "risk_off": 0.0,
+        "transition": 0.0,
+        "vol_high": 0.0
+      },
+      "recent_change_window_days": 20,
+      "risk_tone": "risk_on",
+      "scenario": "mixed_down_vol_normal_risk_on",
+      "snapshot_id": "4b47ae4f95c3ecb3b75fac94017c027f",
+      "trend_regime": "trend_down",
+      "vol_regime": "normal",
+      "vote_disagreement_score": 0.15
+    },
+    {
+      "confidence": 44.0,
+      "market_phase": "range",
+      "penalties": {
+        "disagreement": 3.0,
+        "recent_change": 0.0,
+        "risk_off": 10.0,
+        "transition": 0.0,
+        "vol_high": 15.0
+      },
+      "recent_change_window_days": 20,
+      "risk_tone": "risk_off",
+      "scenario": "vol_high_borderline_realized_risk_off",
+      "snapshot_id": "62d1389f6fbbbc823b7148ff5c6f7e91",
+      "trend_regime": "range",
+      "vol_regime": "high",
+      "vote_disagreement_score": 0.3
+    },
+    {
+      "confidence": 46.0,
+      "market_phase": "transition",
+      "penalties": {
+        "disagreement": 3.0,
+        "recent_change": 0.0,
+        "risk_off": 0.0,
+        "transition": 0.0,
+        "vol_high": 0.0
+      },
+      "recent_change_window_days": 20,
+      "risk_tone": "neutral",
+      "scenario": "vol_low_borderline",
+      "snapshot_id": "b80bfe730b03511fe23fb6b25db8bcc4",
+      "trend_regime": "trend_up",
+      "vol_regime": "low",
+      "vote_disagreement_score": 0.3
+    }
+  ]
+}
