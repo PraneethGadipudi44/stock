@@ -5,7 +5,10 @@ import csv
 import json
 import os
 import sys
+import traceback
+from dataclasses import replace
 from datetime import date, datetime
+from hashlib import sha256
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -18,9 +21,32 @@ from .resources import default_config_path
 from .run_snapshot import _snapshot_to_dict
 from .store import JsonlSnapshotStore
 
+DEBUG = False
+
+
+class CliError(Exception):
+    def __init__(self, message: str, exit_code: int) -> None:
+        super().__init__(message)
+        self.exit_code = exit_code
+
+
+class BadInputError(CliError):
+    def __init__(self, message: str) -> None:
+        super().__init__(message, 2)
+
+
+class InsufficientDataError(CliError):
+    def __init__(self, message: str) -> None:
+        super().__init__(message, 3)
+
 
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Regime Engine CLI")
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug output (stack traces and config path).",
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     snapshot_parser = subparsers.add_parser("snapshot", help="Build a regime snapshot")
@@ -28,6 +54,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     snapshot_parser.add_argument("--prices", required=True, help="Path to prices CSV")
     snapshot_parser.add_argument("--out", default="", help="Optional output JSON path")
     snapshot_parser.add_argument("--store", default="", help="Optional store directory")
+    snapshot_parser.add_argument(
+        "--no-clobber",
+        action="store_true",
+        help="Fail if output file already exists.",
+    )
     snapshot_parser.add_argument(
         "--session",
         default="close",
@@ -66,6 +97,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--out", default="", help="Optional output CSV path"
     )
     replay_parser.add_argument(
+        "--no-clobber",
+        action="store_true",
+        help="Fail if output file already exists.",
+    )
+    replay_parser.add_argument(
         "--session",
         default="close",
         choices=["premarket", "open", "midday", "close", "afterhours"],
@@ -79,6 +115,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     tune_parser.add_argument(
         "--out", required=True, help="Output CSV path for tuning results"
     )
+    tune_parser.add_argument(
+        "--no-clobber",
+        action="store_true",
+        help="Fail if output file already exists.",
+    )
 
     report_parser = subparsers.add_parser("report", help="Render a snapshot summary")
     report_parser.add_argument(
@@ -89,20 +130,33 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
 
     args = parser.parse_args(argv)
+    global DEBUG
+    DEBUG = bool(args.debug)
 
-    if args.command == "snapshot":
-        return _run_snapshot(args)
-    if args.command == "replay":
-        return _run_replay(args)
-    if args.command == "tune":
-        return _run_tune(args)
-    if args.command == "report":
-        return _run_report(args)
-    return 1
+    try:
+        if args.command == "snapshot":
+            return _run_snapshot(args)
+        if args.command == "replay":
+            return _run_replay(args)
+        if args.command == "tune":
+            return _run_tune(args)
+        if args.command == "report":
+            return _run_report(args)
+        return 1
+    except CliError as exc:
+        _eprint(str(exc))
+        if DEBUG:
+            traceback.print_exc()
+        return exc.exit_code
+    except Exception as exc:
+        _eprint(f"Unexpected error: {exc}")
+        if DEBUG:
+            traceback.print_exc()
+        return 4
 
 
 def _run_snapshot(args: argparse.Namespace) -> int:
-    cfg = validate_regime_config(load_regime_config(_resolve_cfg_path(args.cfg)))
+    cfg = _load_cfg(args.cfg)
     rows = _load_prices_csv(args.prices)
 
     metrics = _build_metrics_safe(rows, cfg)
@@ -126,7 +180,7 @@ def _run_snapshot(args: argparse.Namespace) -> int:
     snapshot_json = _build_snapshot_json(metrics, meta, cfg)
 
     if args.out:
-        Path(args.out).write_text(snapshot_json, encoding="utf-8")
+        _write_text(Path(args.out), snapshot_json, args.no_clobber)
     else:
         print(snapshot_json)
 
@@ -139,22 +193,24 @@ def _run_snapshot(args: argparse.Namespace) -> int:
 
 
 def _run_replay(args: argparse.Namespace) -> int:
-    cfg = validate_regime_config(load_regime_config(_resolve_cfg_path(args.cfg)))
+    cfg = _load_cfg(args.cfg)
     rows = _load_prices_csv(args.prices)
 
     start = _parse_date(args.start)
     end = _parse_date(args.end)
     if start > end:
-        raise SystemExit("Start date must be <= end date.")
+        raise BadInputError("Start date must be <= end date.")
 
     dates = sorted({row.date for row in rows if start <= row.date <= end})
     if not dates:
-        raise SystemExit("No prices within the requested date range.")
+        raise InsufficientDataError("No prices within the requested date range.")
 
     store_dir = _resolve_store_dir(args.store)
     if not store_dir:
-        raise SystemExit("Store directory is required for replay.")
-    store = JsonlSnapshotStore(Path(store_dir), cfg_path=_cfg_path_obj(args.cfg))
+        raise BadInputError("Store directory is required for replay.")
+    store_path = Path(store_dir)
+    store_path.mkdir(parents=True, exist_ok=True)
+    store = JsonlSnapshotStore(store_path, cfg_path=_cfg_path_obj(args.cfg))
     summary_rows = []
 
     previous: Optional[RegimeSnapshot] = None
@@ -177,9 +233,18 @@ def _run_replay(args: argparse.Namespace) -> int:
         }
 
         snapshot = build_regime_snapshot(metrics, meta, cfg, previous=previous)
+        snapshot = _apply_deterministic_id(snapshot)
         payload = _snapshot_to_dict(snapshot)
         snapshot_json = json.dumps(payload, sort_keys=True, indent=2)
-        store.append(snapshot_json)
+        existing = store.get(snapshot.snapshot_id)
+        if existing is not None:
+            if args.no_clobber:
+                raise BadInputError(
+                    f"Snapshot {snapshot.snapshot_id} already exists in store."
+                )
+            store._write_latest(existing)
+        else:
+            store.append(snapshot_json)
 
         summary_rows.append(
             {
@@ -200,7 +265,7 @@ def _run_replay(args: argparse.Namespace) -> int:
             days_since_change += 1
         previous = snapshot
 
-    _write_csv(summary_rows, args.out)
+    _write_csv(summary_rows, args.out, args.no_clobber)
     return 0
 
 
@@ -217,7 +282,7 @@ def _run_tune(args: argparse.Namespace) -> int:
         replay_rows = _run_replay_summary(cfg_path, args.prices)
         rows.extend(replay_rows)
 
-    _write_csv(rows, args.out)
+    _write_csv(rows, args.out, args.no_clobber)
     return 0
 
 
@@ -227,11 +292,13 @@ def _run_report(args: argparse.Namespace) -> int:
     else:
         store_dir = _resolve_store_dir(args.store)
         if not store_dir:
-            raise SystemExit("Provide --snapshot or set --store / EDS_REGIME_STORE_DIR.")
+            raise BadInputError(
+                "Provide --snapshot or set --store / EDS_REGIME_STORE_DIR."
+            )
         store = JsonlSnapshotStore(Path(store_dir))
         latest = store.latest()
         if latest is None:
-            raise SystemExit("No snapshots found in store.")
+            raise BadInputError("No snapshots found in store.")
         snapshot = latest["snapshot"]
 
     report = _format_report(snapshot)
@@ -246,7 +313,7 @@ def _run_harness(cfg_path: Optional[str]) -> List[Dict[str, Any]]:
 
 
 def _run_replay_summary(cfg_path: Optional[str], prices_path: str) -> List[Dict[str, Any]]:
-    cfg = validate_regime_config(load_regime_config(cfg_path))
+    cfg = _load_cfg(cfg_path or "")
     rows = _load_prices_csv(prices_path)
     dates = sorted({row.date for row in rows})
     if not dates:
@@ -273,6 +340,7 @@ def _run_replay_summary(cfg_path: Optional[str], prices_path: str) -> List[Dict[
         }
 
         snapshot = build_regime_snapshot(metrics, meta, cfg, previous=previous)
+        snapshot = _apply_deterministic_id(snapshot)
         summary_rows.append(
             {
                 "source": "replay",
@@ -312,7 +380,7 @@ def _determine_as_of_date(rows: Iterable[PriceRow], cfg: Dict[str, Any]) -> date
 
     missing = sorted(required - set(dates_by_ticker))
     if missing:
-        raise SystemExit(f"Missing required tickers: {', '.join(missing)}")
+        raise BadInputError(f"Missing required tickers: {', '.join(missing)}")
 
     latest_dates = [max(dates_by_ticker[ticker]) for ticker in required]
     return min(latest_dates)
@@ -320,6 +388,7 @@ def _determine_as_of_date(rows: Iterable[PriceRow], cfg: Dict[str, Any]) -> date
 
 def _build_snapshot_json(metrics: Dict[str, Any], meta: Dict[str, Any], cfg: Dict[str, Any]) -> str:
     snapshot = build_regime_snapshot(metrics, meta, cfg, previous=None)
+    snapshot = _apply_deterministic_id(snapshot)
     payload = _snapshot_to_dict(snapshot)
     return json.dumps(payload, sort_keys=True, indent=2)
 
@@ -328,14 +397,14 @@ def _load_prices_csv(path: str) -> List[PriceRow]:
     try:
         return read_prices_csv(path)
     except PricesIOError as exc:
-        raise SystemExit(f"Prices CSV error: {exc}") from exc
+        raise BadInputError(f"Prices CSV error: {exc}") from exc
 
 
 def _build_metrics_safe(rows: Iterable[PriceRow], cfg: Dict[str, Any]) -> Dict[str, float]:
     try:
         return build_metrics_from_prices(rows_to_records(rows), cfg)
     except MetricsBuildError as exc:
-        raise SystemExit(f"Metrics build failed: {exc}") from exc
+        raise _classify_metrics_error(exc) from exc
 
 
 def _normalize_reasoning(reasoning: List[str], label: str) -> List[str]:
@@ -344,14 +413,14 @@ def _normalize_reasoning(reasoning: List[str], label: str) -> List[str]:
     if len(reasoning) < 3:
         reasoning = reasoning + ["deterministic_inputs"] * (3 - len(reasoning))
     if len(reasoning) > 5:
-        raise SystemExit("Reasoning must include at most 5 bullets.")
+        raise BadInputError("Reasoning must include at most 5 bullets.")
     return reasoning
 
 
 def _parse_benchmarks(value: str) -> List[str]:
     benchmarks = [item.strip().upper() for item in value.split(",") if item.strip()]
     if not benchmarks:
-        raise SystemExit("Benchmarks list cannot be empty.")
+        raise BadInputError("Benchmarks list cannot be empty.")
     return benchmarks
 
 
@@ -366,18 +435,19 @@ def _parse_date(value: str) -> date:
     try:
         return datetime.fromisoformat(text).date()
     except ValueError as exc:
-        raise SystemExit(f"Invalid date value: {value}") from exc
+        raise BadInputError(f"Invalid date value: {value}") from exc
 
 
-def _write_csv(rows: List[Dict[str, Any]], out_path: str) -> None:
+def _write_csv(rows: List[Dict[str, Any]], out_path: str, no_clobber: bool) -> None:
     if not rows:
-        raise SystemExit("No rows to write.")
+        raise BadInputError("No rows to write.")
     fieldnames = list(rows[0].keys())
     for row in rows[1:]:
         for key in row.keys():
             if key not in fieldnames:
                 fieldnames.append(key)
     if out_path:
+        _check_no_clobber(Path(out_path), no_clobber)
         with open(out_path, "w", newline="", encoding="utf-8") as handle:
             writer = csv.DictWriter(handle, fieldnames=fieldnames)
             writer.writeheader()
@@ -391,7 +461,7 @@ def _write_csv(rows: List[Dict[str, Any]], out_path: str) -> None:
 def _resolve_cfg_path(cfg_path: str) -> Optional[str]:
     if cfg_path:
         return cfg_path
-    return default_config_path()
+    return None
 
 
 def _cfg_path_obj(cfg_path: str) -> Optional[Path]:
@@ -404,6 +474,58 @@ def _resolve_store_dir(store_dir: str) -> str:
     if store_dir:
         return store_dir
     return os.environ.get("EDS_REGIME_STORE_DIR", "")
+
+
+def _load_cfg(cfg_path: str) -> Dict[str, Any]:
+    resolved = _resolve_cfg_path(cfg_path)
+    if resolved:
+        _debug(f"Using config: {resolved}")
+    else:
+        _debug("Using packaged config resource.")
+    try:
+        return validate_regime_config(load_regime_config(resolved))
+    except (OSError, KeyError, ValueError) as exc:
+        raise BadInputError(f"Config error: {exc}") from exc
+
+
+def _classify_metrics_error(exc: MetricsBuildError) -> CliError:
+    message = str(exc)
+    if "Missing required tickers" in message:
+        return BadInputError(message)
+    if "Missing days" in message:
+        return InsufficientDataError(message)
+    if "Insufficient overlap" in message or "Insufficient history" in message:
+        return InsufficientDataError(message)
+    if "Missing data for" in message:
+        return InsufficientDataError(message)
+    return BadInputError(message)
+
+
+def _check_no_clobber(path: Path, no_clobber: bool) -> None:
+    if no_clobber and path.exists():
+        raise BadInputError(f"Refusing to overwrite existing file: {path}")
+
+
+def _write_text(path: Path, content: str, no_clobber: bool) -> None:
+    _check_no_clobber(path, no_clobber)
+    path.write_text(content, encoding="utf-8")
+
+
+def _apply_deterministic_id(snapshot: RegimeSnapshot) -> RegimeSnapshot:
+    payload = _snapshot_to_dict(snapshot)
+    payload.pop("snapshot_id", None)
+    raw = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    digest = sha256(raw.encode("utf-8")).hexdigest()[:32]
+    return replace(snapshot, snapshot_id=digest)
+
+
+def _eprint(message: str) -> None:
+    print(message, file=sys.stderr)
+
+
+def _debug(message: str) -> None:
+    if DEBUG:
+        _eprint(message)
 
 
 def _format_report(snapshot: Dict[str, Any]) -> str:
