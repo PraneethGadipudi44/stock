@@ -1,0 +1,8 @@
+usage: cli.py tune [-h] [--cfg CFG] [--prices PRICES] --out OUT [--no-clobber]
+
+options:
+  -h, --help       show this help message and exit
+  --cfg CFG        Path to regime config
+  --prices PRICES  Optional prices CSV for replay summary
+  --out OUT        Output CSV path for tuning results
+  --no-clobber     Fail if output file already exists.

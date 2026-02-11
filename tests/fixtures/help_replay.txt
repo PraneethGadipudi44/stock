@@ -1,0 +1,14 @@
+usage: cli.py replay [-h] [--cfg CFG] --prices PRICES [--store STORE]
+                     --start START --end END [--out OUT] [--no-clobber]
+                     [--session {premarket,open,midday,close,afterhours}]
+
+options:
+  -h, --help            show this help message and exit
+  --cfg CFG             Path to regime config
+  --prices PRICES       Path to prices CSV
+  --store STORE         Store directory
+  --start START         Start date (YYYY-MM-DD)
+  --end END             End date (YYYY-MM-DD)
+  --out OUT             Optional output CSV path
+  --no-clobber          Fail if output file already exists.
+  --session {premarket,open,midday,close,afterhours}

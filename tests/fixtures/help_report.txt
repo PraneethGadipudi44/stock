@@ -1,0 +1,6 @@
+usage: cli.py report [-h] [--snapshot SNAPSHOT] [--store STORE]
+
+options:
+  -h, --help           show this help message and exit
+  --snapshot SNAPSHOT  Path to snapshot JSON file
+  --store STORE        Store directory (uses latest.json)

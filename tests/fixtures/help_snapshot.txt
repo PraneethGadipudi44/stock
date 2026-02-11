@@ -1,0 +1,23 @@
+usage: cli.py snapshot [-h] [--cfg CFG] --prices PRICES [--out OUT]
+                       [--store STORE] [--no-clobber]
+                       [--session {premarket,open,midday,close,afterhours}]
+                       [--benchmarks BENCHMARKS] [--reasoning REASONING]
+                       [--recent-change-window-days RECENT_CHANGE_WINDOW_DAYS]
+                       [--inputs-hash INPUTS_HASH]
+
+options:
+  -h, --help            show this help message and exit
+  --cfg CFG             Path to regime config
+  --prices PRICES       Path to prices CSV
+  --out OUT             Optional output JSON path
+  --store STORE         Optional store directory
+  --no-clobber          Fail if output file already exists.
+  --session {premarket,open,midday,close,afterhours}
+  --benchmarks BENCHMARKS
+                        Comma-separated benchmark list
+  --reasoning REASONING
+                        Reasoning bullet (repeatable)
+  --recent-change-window-days RECENT_CHANGE_WINDOW_DAYS
+                        Recent change window days
+  --inputs-hash INPUTS_HASH
+                        Optional inputs hash override
