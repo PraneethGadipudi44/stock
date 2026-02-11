@@ -1,0 +1,17 @@
+scenario,market_phase,trend_regime,vol_regime,risk_tone,confidence,trend_vote,vol_vote,risk_vote,trend_score,vol_score,risk_score,trend_direction_score,vote_disagreement_score,vote_disagreement_score_internal,vote_disagreement_score_provided
+trend_up_normal,trend_up,trend_up,normal,risk_on,82.0,trend_up,normal,risk_on,100.0,40.0,1.5,100.0,0.0,,
+trend_down_normal,trend_down,trend_down,normal,risk_off,72.0,trend_down,normal,risk_off,100.0,40.0,-1.5,-100.0,0.0,,
+range_choppy,range,range,normal,neutral,45.50000000000001,range,normal,neutral,80.0,45.0,0.1,0.0,0.3,,
+transition_disagreement,transition,range,high,neutral,7.000000000000007,range,high,neutral,45.0,90.0,-0.1,0.0,0.6,,
+risk_off_vol_high,trend_down,trend_down,high,risk_off,65.00000000000001,trend_down,high,risk_off,90.0,90.0,-2.0,-90.0,0.3,,
+vol_low_risk_on,trend_up,trend_up,low,risk_on,73.6,trend_up,low,risk_on,100.0,12.0,1.2,100.0,0.0,,
+neutral_risk,range,range,normal,neutral,33.0,range,normal,neutral,45.0,50.0,0.1,0.0,0.3,,
+trend_up_vol_high,transition,trend_up,high,risk_on,78.39999999999999,trend_up,high,risk_on,100.0,88.0,1.0,100.0,0.3,,
+trend_up_low_score_borderline,transition,trend_up,normal,neutral,47.610169491525426,trend_up,normal,neutral,81.52542372881356,50.0,0.1,81.52542372881356,0.3,,
+trend_down_low_score_borderline,transition,trend_down,normal,neutral,47.610169491525426,trend_down,normal,neutral,81.52542372881356,50.0,-0.1,-81.52542372881356,0.3,,
+chop_high_borderline,range,range,normal,neutral,35.22,range,normal,neutral,61.8,45.0,0.0,0.0,0.3,,
+chop_low_borderline,range,range,normal,neutral,25.780000000000005,range,normal,neutral,38.2,45.0,0.0,0.0,0.3,,
+mixed_up_vol_high_risk_neutral,transition,trend_up,high,neutral,26.0,trend_up,high,neutral,100.0,80.0,0.1,100.0,0.6,,
+mixed_down_vol_normal_risk_on,transition,trend_down,normal,risk_on,83.50000000000001,trend_down,normal,risk_on,100.0,50.0,1.0,-100.0,0.15,0.0,0.15
+vol_high_borderline_realized_risk_off,range,range,high,risk_off,44.0,range,high,risk_off,45.0,80.0,-1.0,0.0,0.3,,
+vol_low_borderline,transition,trend_up,low,neutral,46.0,trend_up,low,neutral,100.0,20.0,0.1,100.0,0.3,,

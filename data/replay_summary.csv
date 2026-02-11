@@ -1,0 +1,6 @@
+date,snapshot_id,market_phase,trend_regime,vol_regime,risk_tone,confidence,vote_disagreement_score
+2026-01-16,01ddb302de8244ceb4571c931369db8e,transition,trend_up,high,neutral,40.82310084785398,0.6
+2026-01-17,554c37427b5a40b18ac9882436153042,transition,trend_up,high,neutral,40.81337234371371,0.6
+2026-01-18,c33a4c5fea6e43e6bd663ae95cc8afaf,transition,trend_up,high,neutral,40.803656070812124,0.6
+2026-01-19,bc44330dd84747148c8657b0023ce697,transition,trend_up,high,neutral,40.79395200828459,0.6
+2026-01-20,4984a94667b24fe4acd193a44e1643d4,transition,trend_up,high,neutral,40.784260135313076,0.6

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Any, Dict, Optional
 
 from .config import load_regime_config, validate_regime_config
@@ -73,10 +72,6 @@ def run_snapshot(
     previous: Optional[RegimeSnapshot] = None,
 ) -> str:
     """Build a regime snapshot and return JSON for persistence or transport."""
-    if cfg_path is None:
-        root = Path(__file__).resolve().parents[4]
-        cfg_path = str(root / "config" / "regime_v1.yaml")
-
     cfg = validate_regime_config(load_regime_config(cfg_path))
     snapshot = build_regime_snapshot(metrics, meta, cfg, previous=previous)
     payload = _snapshot_to_dict(snapshot)

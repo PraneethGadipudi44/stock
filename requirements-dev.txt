@@ -1,3 +1,12 @@
 pytest
 jsonschema
 pyyaml
+ruff
+black
+mypy
+build
+pre-commit
+fastapi
+uvicorn
+python-multipart
+httpx

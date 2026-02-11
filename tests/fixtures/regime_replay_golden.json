@@ -1,0 +1,52 @@
+[
+  {
+    "confidence": 35.78274956090459,
+    "date": "2026-01-16",
+    "market_phase": "transition",
+    "risk_tone": "neutral",
+    "snapshot_id": "000000000000000000000000000000b1",
+    "trend_regime": "trend_up",
+    "vol_regime": "high",
+    "vote_disagreement_score": 0.6
+  },
+  {
+    "confidence": 66.3833219002813,
+    "date": "2026-01-17",
+    "market_phase": "transition",
+    "risk_tone": "neutral",
+    "snapshot_id": "000000000000000000000000000000b2",
+    "trend_regime": "trend_up",
+    "vol_regime": "normal",
+    "vote_disagreement_score": 0.3
+  },
+  {
+    "confidence": 32.09156084230557,
+    "date": "2026-01-18",
+    "market_phase": "transition",
+    "risk_tone": "neutral",
+    "snapshot_id": "000000000000000000000000000000b3",
+    "trend_regime": "trend_up",
+    "vol_regime": "high",
+    "vote_disagreement_score": 0.6
+  },
+  {
+    "confidence": 35.390214194147845,
+    "date": "2026-01-19",
+    "market_phase": "transition",
+    "risk_tone": "neutral",
+    "snapshot_id": "000000000000000000000000000000b4",
+    "trend_regime": "trend_up",
+    "vol_regime": "high",
+    "vote_disagreement_score": 0.6
+  },
+  {
+    "confidence": 35.66879822245582,
+    "date": "2026-01-20",
+    "market_phase": "transition",
+    "risk_tone": "neutral",
+    "snapshot_id": "000000000000000000000000000000b5",
+    "trend_regime": "trend_up",
+    "vol_regime": "high",
+    "vote_disagreement_score": 0.6
+  }
+]

@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/regime_metrics_input.schema.v1.json",
+  "title": "RegimeMetricsInput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "basket_price_above_50dma_pct",
+    "basket_price_above_200dma_pct",
+    "basket_ma50_slope_20d",
+    "chop_score",
+    "realized_vol_20d_pct",
+    "vix_pct",
+    "hyg_lqd_rs_20d",
+    "spy_tlt_rs_20d"
+  ],
+  "properties": {
+    "basket_price_above_50dma_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Percent of benchmark basket above 50DMA, 0-100."
+    },
+    "basket_price_above_200dma_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Percent of benchmark basket above 200DMA, 0-100."
+    },
+    "basket_ma50_slope_20d": {
+      "type": "number",
+      "minimum": -100,
+      "maximum": 100,
+      "description": "50DMA slope over 20 trading days, expressed as percent change (e.g., 5 = +5%)."
+    },
+    "chop_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Choppiness Index (CHOP) value on SPY or basket, 0-100 (e.g., 14-period). Higher implies range-like conditions."
+    },
+    "realized_vol_20d_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "20D realized volatility percentile for SPY (or proxy), 0-100."
+    },
+    "vix_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "VIX percentile (or proxy) over a long lookback, 0-100."
+    },
+    "hyg_lqd_rs_20d": {
+      "type": "number",
+      "minimum": -100,
+      "maximum": 100,
+      "description": "20D relative strength of HYG vs LQD, expressed as percent change (e.g., 2 = +2%)."
+    },
+    "spy_tlt_rs_20d": {
+      "type": "number",
+      "minimum": -100,
+      "maximum": 100,
+      "description": "20D relative strength of SPY vs TLT (or IEF), percent change."
+    },
+    "breadth_above_50dma_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Optional breadth proxy: percent of universe above 50DMA, 0-100."
+    },
+    "dxy_rs_20d": {
+      "type": "number",
+      "minimum": -100,
+      "maximum": 100,
+      "description": "Optional USD strength proxy, 20D percent change (positive = stronger USD)."
+    }
+  }
+}

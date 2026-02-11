@@ -1,0 +1,58 @@
+{
+  "metadata": {
+    "config_hash": "befa920dc32796443dd05b4453f890b895a9763a73671a04e0710e22f259c27a",
+    "inputs_hash": "9338bd62bc13a7a8d3ef61456784117574b700664860617f86cab45505155068",
+    "stored_at": "2026-02-10T08:50:27.420515Z"
+  },
+  "snapshot": {
+    "as_of_ts": "2026-01-20T00:00:00Z",
+    "benchmarks": [
+      "SPY",
+      "QQQ",
+      "IWM"
+    ],
+    "change_drivers": [],
+    "change_reason": "no_change",
+    "confidence": 0.0,
+    "engine_version": "regime_v1",
+    "market_phase": "transition",
+    "metrics_snapshot": {
+      "recent_change_window_days": 1003,
+      "trend_direction_score": 100.0,
+      "vote_disagreement_score": 0.6
+    },
+    "prev_snapshot_ref": "58cbf6ca424c489588ff0ab92f39c65b",
+    "reasoning": [
+      "Replay 2026-01-20",
+      "metrics_builder",
+      "deterministic_inputs"
+    ],
+    "regime_changed": false,
+    "risk_tone": "neutral",
+    "session": "close",
+    "signal_votes": {
+      "risk": {
+        "passed": false,
+        "score": 0.39280867117710283,
+        "threshold": 1.0,
+        "vote": "neutral"
+      },
+      "trend": {
+        "passed": true,
+        "score": 100.0,
+        "threshold": 65.0,
+        "vote": "trend_up"
+      },
+      "vol": {
+        "passed": true,
+        "score": 100.0,
+        "threshold": 80.0,
+        "vote": "high"
+      }
+    },
+    "snapshot_id": "ac4696d028e7409c926e024a7674c6a3",
+    "trend_regime": "trend_up",
+    "universe": "US_EQ_ETF",
+    "vol_regime": "high"
+  }
+}

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import yaml
 
+from .resources import read_text
 
 REQUIRED_CONFIG_PATHS = [
     ("thresholds", "trend"),
@@ -21,10 +22,13 @@ REQUIRED_CONFIG_PATHS = [
 ]
 
 
-def load_regime_config(path: str) -> Dict[str, Any]:
-    """Load regime configuration from a YAML file."""
-    with open(path, "r", encoding="utf-8") as handle:
-        data = yaml.safe_load(handle)
+def load_regime_config(path: Optional[str] = None) -> Dict[str, Any]:
+    """Load regime configuration from a YAML file or packaged default."""
+    if path:
+        with open(path, "r", encoding="utf-8") as handle:
+            data = yaml.safe_load(handle)
+    else:
+        data = yaml.safe_load(read_text("regime_v1.yaml"))
     if data is None:
         raise ValueError("Regime config is empty or invalid YAML.")
     return data

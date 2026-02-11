@@ -1,0 +1,52 @@
+{
+  "as_of_ts": "2026-01-20T00:00:00Z",
+  "benchmarks": [
+    "SPY",
+    "QQQ",
+    "IWM"
+  ],
+  "change_drivers": [],
+  "change_reason": "no_prior",
+  "confidence": 35.66879822245582,
+  "engine_version": "regime_v1",
+  "inputs_hash": "prices-fixture",
+  "market_phase": "transition",
+  "metrics_snapshot": {
+    "recent_change_window_days": 20,
+    "trend_direction_score": 92.25859804446117,
+    "vote_disagreement_score": 0.6
+  },
+  "prev_snapshot_ref": null,
+  "reasoning": [
+    "Prices fixture",
+    "Metrics builder",
+    "Deterministic"
+  ],
+  "regime_changed": false,
+  "risk_tone": "neutral",
+  "session": "close",
+  "signal_votes": {
+    "risk": {
+      "passed": false,
+      "score": 0.32551196682237826,
+      "threshold": 1.0,
+      "vote": "neutral"
+    },
+    "trend": {
+      "passed": true,
+      "score": 92.25859804446117,
+      "threshold": 65.0,
+      "vote": "trend_up"
+    },
+    "vol": {
+      "passed": true,
+      "score": 100.0,
+      "threshold": 80.0,
+      "vote": "high"
+    }
+  },
+  "snapshot_id": "000000000000000000000000000000a1",
+  "trend_regime": "trend_up",
+  "universe": "US_EQ_ETF",
+  "vol_regime": "high"
+}

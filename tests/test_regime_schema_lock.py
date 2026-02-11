@@ -44,3 +44,32 @@ def test_regime_snapshot_schema_lock():
 
     metrics_snapshot = schema["$defs"]["MetricsSnapshot"]
     assert metrics_snapshot["additionalProperties"] is True
+
+
+def test_regime_store_entry_schema_lock():
+    root = Path(__file__).resolve().parents[1]
+    schema_path = root / "contracts" / "regime_store_entry.schema.v1.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+    assert set(schema["required"]) == {"snapshot", "metadata"}
+    metadata = schema["properties"]["metadata"]
+    assert set(metadata["required"]) == {"stored_at", "inputs_hash"}
+
+
+def test_regime_metrics_input_schema_lock():
+    root = Path(__file__).resolve().parents[1]
+    schema_path = root / "contracts" / "regime_metrics_input.schema.v1.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+    required = {
+        "basket_price_above_50dma_pct",
+        "basket_price_above_200dma_pct",
+        "basket_ma50_slope_20d",
+        "chop_score",
+        "realized_vol_20d_pct",
+        "vix_pct",
+        "hyg_lqd_rs_20d",
+        "spy_tlt_rs_20d",
+    }
+    assert set(schema["required"]) == required
+    assert schema["additionalProperties"] is False

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/regime_store_entry.schema.v1.json",
+  "title": "RegimeStoreEntry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["snapshot", "metadata"],
+  "properties": {
+    "snapshot": {
+      "$ref": "regime_snapshot.schema.v1.json"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stored_at", "inputs_hash"],
+      "properties": {
+        "stored_at": {"type": "string", "format": "date-time"},
+        "config_hash": {"type": ["string", "null"]},
+        "inputs_hash": {"type": "string", "minLength": 8}
+      }
+    }
+  }
+}

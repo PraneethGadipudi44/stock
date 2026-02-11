@@ -1,32 +1,28 @@
-# Regime Engine v1 thresholds (initial defaults; tune before production use)
-version: "regime_v1"
-defaults_policy: "conservative"
-
+version: regime_v1
+defaults_policy: conservative
 units:
-  pct_scale: "0-100"
-  rs_20d: "percent_change"
-  slope_20d: "percent_change"
-  chop_score: "CHOP 0-100"
-
+  pct_scale: 0-100
+  rs_20d: percent_change
+  slope_20d: percent_change
+  chop_score: CHOP 0-100
 metrics:
   required_tickers:
-    - "SPY"
-    - "TLT"
-    - "HYG"
-    - "LQD"
-    - "VIX"
+  - SPY
+  - TLT
+  - HYG
+  - LQD
+  - VIX
   basket_tickers:
-    - "SPY"
-  vix_ticker: "VIX"
-  sma_short_window: 50
-  sma_long_window: 200
-  slope_window: 20
-  chop_window: 14
-  vol_window: 20
-  vol_lookback: 252
-  vix_pct_lookback: 252
-  rs_window: 20
-
+  - SPY
+  vix_ticker: VIX
+  sma_short_window: 5
+  sma_long_window: 10
+  slope_window: 3
+  chop_window: 5
+  vol_window: 5
+  vol_lookback: 10
+  vix_pct_lookback: 10
+  rs_window: 5
 thresholds:
   trend:
     basket_above_50dma_up: 60.0
@@ -60,7 +56,6 @@ thresholds:
       risk_neutral: 0.3
       vol_high: 0.3
       recent_change: 0.2
-
 confidence:
   vote_weights:
     trend: 0.4
@@ -69,8 +64,8 @@ confidence:
   penalties:
     vol_high: 15.0
     risk_off: 10.0
-    transition: 32.0
-    disagreement_per_point: 65.0
+    transition: 20.0
+    disagreement_per_point: 10.0
     recent_change: 10.0
   bounds:
     min: 0
