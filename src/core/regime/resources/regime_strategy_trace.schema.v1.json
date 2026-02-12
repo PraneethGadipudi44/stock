@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/regime_strategy_trace.schema.v1.json",
+  "title": "RegimeStrategyTrace",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_id",
+    "as_of_ts",
+    "strategy_schema_version",
+    "explain_schema_version",
+    "strategy_config_hash",
+    "regime_config_hash",
+    "explain_config_hash",
+    "inputs_hash"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "snapshot_id": { "type": "string" },
+    "as_of_ts": { "type": "string" },
+    "strategy_schema_version": { "type": "integer", "enum": [1, 2] },
+    "explain_schema_version": { "type": "integer", "const": 1 },
+    "strategy_config_hash": { "type": "string" },
+    "regime_config_hash": { "type": ["string", "null"] },
+    "explain_config_hash": { "type": "string" },
+    "inputs_hash": { "type": ["string", "null"] },
+    "engine_version": { "type": ["string", "null"] },
+    "strategy_file": { "type": ["string", "null"] },
+    "explain_file": { "type": ["string", "null"] }
+  }
+}

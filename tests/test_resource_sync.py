@@ -16,6 +16,7 @@ def test_packaged_resources_match_repo_files():
         "regime_explain.schema.v1.json": root / "contracts" / "regime_explain.schema.v1.json",
         "regime_strategy.schema.v1.json": root / "contracts" / "regime_strategy.schema.v1.json",
         "regime_strategy.schema.v2.json": root / "contracts" / "regime_strategy.schema.v2.json",
+        "regime_strategy_trace.schema.v1.json": root / "contracts" / "regime_strategy_trace.schema.v1.json",
     }
 
     for name, path in mapping.items():

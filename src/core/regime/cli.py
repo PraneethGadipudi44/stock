@@ -27,6 +27,7 @@ from .strategy import (
     strategy_json,
     validate_strategy_config,
 )
+from .trace import trace_json
 
 DEBUG = False
 
@@ -201,6 +202,30 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Fail if output file already exists.",
     )
 
+    trace_parser = subparsers.add_parser(
+        "trace", help="Link strategy and explain artifacts"
+    )
+    trace_parser.add_argument(
+        "--strategy",
+        required=True,
+        help="Path to strategy JSON (or '-' for stdin)",
+    )
+    trace_parser.add_argument(
+        "--explain",
+        required=True,
+        help="Path to explain JSON (or '-' for stdin)",
+    )
+    trace_parser.add_argument(
+        "--out",
+        default="",
+        help="Output trace JSON path (or '-' for stdout)",
+    )
+    trace_parser.add_argument(
+        "--no-clobber",
+        action="store_true",
+        help="Fail if output file already exists.",
+    )
+
     args = parser.parse_args(argv)
     global DEBUG
     DEBUG = bool(args.debug)
@@ -216,6 +241,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             return _run_report(args)
         if args.command == "strategy":
             return _run_strategy(args)
+        if args.command == "trace":
+            return _run_trace(args)
         return 1
     except CliError as exc:
         _eprint(str(exc))
@@ -457,6 +484,45 @@ def _run_strategy(args: argparse.Namespace) -> int:
         _write_text(Path(args.out), output, args.no_clobber)
     else:
         print(output)
+    return 0
+
+
+def _run_trace(args: argparse.Namespace) -> int:
+    if args.strategy == "-" and args.explain == "-":
+        raise BadInputError("Use stdin for only one input at a time.")
+
+    strategy_payload: Dict[str, Any]
+    explain_payload: Dict[str, Any]
+
+    if args.strategy == "-":
+        strategy_payload = json.loads(sys.stdin.read())
+    else:
+        strategy_payload = json.loads(
+            Path(args.strategy).read_text(encoding="utf-8")
+        )
+
+    if args.explain == "-":
+        explain_payload = json.loads(sys.stdin.read())
+    else:
+        explain_payload = json.loads(
+            Path(args.explain).read_text(encoding="utf-8")
+        )
+
+    try:
+        output = trace_json(
+            strategy_payload,
+            explain_payload,
+            strategy_file=args.strategy,
+            explain_file=args.explain,
+        )
+    except ValueError as exc:
+        raise BadInputError(str(exc)) from exc
+
+    if args.out and args.out != "-":
+        _write_text(Path(args.out), output, args.no_clobber)
+    else:
+        print(output)
+
     return 0
 
 

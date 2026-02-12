@@ -1,0 +1,9 @@
+usage: cli.py trace [-h] --strategy STRATEGY --explain EXPLAIN [--out OUT]
+                    [--no-clobber]
+
+options:
+  -h, --help           show this help message and exit
+  --strategy STRATEGY  Path to strategy JSON (or '-' for stdin)
+  --explain EXPLAIN    Path to explain JSON (or '-' for stdin)
+  --out OUT            Output trace JSON path (or '-' for stdout)
+  --no-clobber         Fail if output file already exists.
