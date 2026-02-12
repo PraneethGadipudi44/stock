@@ -38,7 +38,7 @@ def test_strategy_cli_smoke(tmp_path: Path):
 
     payload = json.loads(out_path.read_text(encoding="utf-8"))
     schema = json.loads(
-        Path("contracts/regime_strategy.schema.v1.json").read_text(encoding="utf-8")
+        Path("contracts/regime_strategy.schema.v2.json").read_text(encoding="utf-8")
     )
     jsonschema.validate(payload, schema)
 
@@ -47,4 +47,5 @@ def test_strategy_cli_smoke(tmp_path: Path):
     assert payload["as_of_ts"] == snapshot["as_of_ts"]
 
     cfg_hash = sha256(cfg_path.read_bytes()).hexdigest()
-    assert payload["config_hash"] == cfg_hash
+    assert payload["strategy_config_hash"] == cfg_hash
+    assert payload["regime_config_hash"] is None

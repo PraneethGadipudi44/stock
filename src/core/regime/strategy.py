@@ -74,6 +74,7 @@ def build_strategy(
     cfg: Dict[str, Any],
     cfg_source: str,
     cfg_hash: str,
+    schema_version: int = 2,
 ) -> Dict[str, Any]:
     cfg = validate_strategy_config(cfg)
 
@@ -129,21 +130,42 @@ def build_strategy(
     rules_fired = sorted(rules)
     guardrails_list = sorted(guardrails)
 
-    rationale = [
-        f"market_phase={market_phase}",
-        f"confidence={confidence:.2f}",
-        f"trend_regime={trend_regime}, vol_regime={vol_regime}, risk_tone={risk_tone}",
-    ]
-    if action == "do_nothing":
-        rationale.append("transition gate -> do_nothing")
-    elif action == "observe_only":
-        rationale.append("confidence below thresholds -> observe_only")
-    elif action == "reduce_risk":
-        rationale.append("vol_high -> capital_preservation")
-    elif playbook == "trend_follow":
-        rationale.append("trend regime with confidence >= threshold")
-    elif playbook == "mean_revert":
-        rationale.append("range regime with confidence >= threshold")
+    if schema_version == 1:
+        rationale = [
+            f"market_phase={market_phase}",
+            f"confidence={confidence:.2f}",
+            f"trend_regime={trend_regime}, vol_regime={vol_regime}, risk_tone={risk_tone}",
+        ]
+        if action == "do_nothing":
+            rationale.append("transition gate -> do_nothing")
+        elif action == "observe_only":
+            rationale.append("confidence below thresholds -> observe_only")
+        elif action == "reduce_risk":
+            rationale.append("vol_high -> capital_preservation")
+        elif playbook == "trend_follow":
+            rationale.append("trend regime with confidence >= threshold")
+        elif playbook == "mean_revert":
+            rationale.append("range regime with confidence >= threshold")
+    else:
+        min_conf = float(thresholds["min_confidence"])
+        trend_conf = float(thresholds["trend_confidence"])
+        range_conf = float(thresholds["range_confidence"])
+        rationale = [
+            f"Phase: {market_phase} \u2192 Action: {action}",
+            (
+                "Confidence: "
+                f"{confidence:.2f} (min={min_conf:.2f}, trend={trend_conf:.2f}, "
+                f"range={range_conf:.2f})"
+            ),
+            (
+                "Regimes: "
+                f"trend={trend_regime}, vol={vol_regime}, risk={risk_tone}"
+            ),
+        ]
+        if rules_fired:
+            rationale.append(f"Rules: {', '.join(rules_fired)}")
+        if guardrails_list:
+            rationale.append(f"Guardrails: {', '.join(guardrails_list)}")
 
     if len(rationale) > 5:
         rationale = rationale[:5]
@@ -160,12 +182,42 @@ def build_strategy(
         "vote_disagreement_score": metrics_snapshot["vote_disagreement_score"],
     }
 
+    if schema_version == 1:
+        return {
+            "schema_version": 1,
+            "strategy_version": cfg["version"],
+            "strategy_config_source": _normalize_source(cfg_source),
+            "strategy_config_hash": cfg_hash,
+            "config_hash": cfg_hash,
+            "as_of_ts": snapshot["as_of_ts"],
+            "snapshot_id": snapshot["snapshot_id"],
+            "snapshot_schema_version": snapshot.get("schema_version"),
+            "inputs_hash": snapshot.get("inputs_hash"),
+            "market_phase": market_phase,
+            "trend_regime": trend_regime,
+            "vol_regime": vol_regime,
+            "risk_tone": risk_tone,
+            "confidence": confidence,
+            "action_recommendation": action,
+            "playbook": playbook,
+            "guardrails": guardrails_list,
+            "rules_fired": rules_fired,
+            "rationale": rationale,
+            "strategy_inputs": strategy_inputs,
+        }
+
+    regime_config_hash = snapshot.get("config_hash")
+    if regime_config_hash is None:
+        guardrails_list = sorted(
+            set(guardrails_list + ["guardrail.missing_regime_config_hash"])
+        )
+
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "strategy_version": cfg["version"],
         "strategy_config_source": _normalize_source(cfg_source),
         "strategy_config_hash": cfg_hash,
-        "config_hash": cfg_hash,
+        "regime_config_hash": regime_config_hash,
         "as_of_ts": snapshot["as_of_ts"],
         "snapshot_id": snapshot["snapshot_id"],
         "snapshot_schema_version": snapshot.get("schema_version"),
@@ -189,6 +241,7 @@ def strategy_json(
     cfg: Dict[str, Any],
     cfg_source: str,
     cfg_hash: str,
+    schema_version: int = 2,
 ) -> str:
-    payload = build_strategy(snapshot, cfg, cfg_source, cfg_hash)
+    payload = build_strategy(snapshot, cfg, cfg_source, cfg_hash, schema_version)
     return json.dumps(payload, indent=2, sort_keys=True)

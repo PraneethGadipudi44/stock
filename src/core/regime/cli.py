@@ -184,6 +184,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Path to strategy config",
     )
     strategy_parser.add_argument(
+        "--schema-version",
+        type=int,
+        choices=[1, 2],
+        default=2,
+        help="Strategy schema version (default: 2).",
+    )
+    strategy_parser.add_argument(
         "--out",
         default="",
         help="Output strategy JSON path (or '-' for stdout)",
@@ -441,7 +448,10 @@ def _run_strategy(args: argparse.Namespace) -> int:
     cfg_source = cfg_path if cfg_path else "packaged"
     cfg = validate_strategy_config(load_strategy_config(cfg_path))
     cfg_hash = strategy_config_hash(cfg_path)
-    output = strategy_json(snapshot, cfg, cfg_source, cfg_hash)
+    if args.schema_version == 1:
+        _eprint("Warning: --schema-version 1 is legacy; default is v2.")
+
+    output = strategy_json(snapshot, cfg, cfg_source, cfg_hash, args.schema_version)
 
     if args.out and args.out != "-":
         _write_text(Path(args.out), output, args.no_clobber)

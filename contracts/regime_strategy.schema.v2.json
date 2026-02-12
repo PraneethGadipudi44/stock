@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/regime_strategy.schema.v2.json",
+  "title": "RegimeStrategy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "strategy_version",
+    "strategy_config_source",
+    "strategy_config_hash",
+    "regime_config_hash",
+    "as_of_ts",
+    "snapshot_id",
+    "snapshot_schema_version",
+    "market_phase",
+    "trend_regime",
+    "vol_regime",
+    "risk_tone",
+    "confidence",
+    "action_recommendation",
+    "playbook",
+    "guardrails",
+    "rules_fired",
+    "rationale",
+    "strategy_inputs"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 2 },
+    "strategy_version": { "type": "string" },
+    "strategy_config_source": { "type": "string" },
+    "strategy_config_hash": { "type": "string" },
+    "regime_config_hash": { "type": ["string", "null"] },
+    "as_of_ts": { "type": "string" },
+    "snapshot_id": { "type": "string" },
+    "snapshot_schema_version": { "type": "integer" },
+    "inputs_hash": { "type": ["string", "null"] },
+    "market_phase": { "type": "string" },
+    "trend_regime": {
+      "type": "string",
+      "enum": ["trend_up", "trend_down", "range"]
+    },
+    "vol_regime": {
+      "type": "string",
+      "enum": ["low", "normal", "high"]
+    },
+    "risk_tone": {
+      "type": "string",
+      "enum": ["risk_on", "neutral", "risk_off"]
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 100 },
+    "action_recommendation": {
+      "type": "string",
+      "enum": ["do_nothing", "observe_only", "risk_on", "reduce_risk"]
+    },
+    "playbook": {
+      "type": "string",
+      "enum": [
+        "none",
+        "trend_follow",
+        "mean_revert",
+        "capital_preservation",
+        "tactical_breakout"
+      ]
+    },
+    "guardrails": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "rules_fired": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "rationale": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 3, "maxLength": 200 },
+      "minItems": 3,
+      "maxItems": 5
+    },
+    "strategy_inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trend_regime",
+        "vol_regime",
+        "risk_tone",
+        "market_phase",
+        "confidence",
+        "recent_change_window_days",
+        "vote_disagreement_score"
+      ],
+      "properties": {
+        "trend_regime": { "type": "string" },
+        "vol_regime": { "type": "string" },
+        "risk_tone": { "type": "string" },
+        "market_phase": { "type": "string" },
+        "confidence": { "type": "number" },
+        "recent_change_window_days": { "type": "number" },
+        "vote_disagreement_score": { "type": "number" }
+      }
+    }
+  }
+}

@@ -1,11 +1,14 @@
 usage: cli.py strategy [-h] [--snapshot SNAPSHOT] [--store STORE] [--latest]
-                       [--cfg CFG] [--out OUT] [--no-clobber]
+                       [--cfg CFG] [--schema-version {1,2}] [--out OUT]
+                       [--no-clobber]
 
 options:
-  -h, --help           show this help message and exit
-  --snapshot SNAPSHOT  Path to snapshot JSON (or '-' for stdin)
-  --store STORE        Store directory (use with --latest)
-  --latest             Use latest snapshot from store
-  --cfg CFG            Path to strategy config
-  --out OUT            Output strategy JSON path (or '-' for stdout)
-  --no-clobber         Fail if output file already exists.
+  -h, --help            show this help message and exit
+  --snapshot SNAPSHOT   Path to snapshot JSON (or '-' for stdin)
+  --store STORE         Store directory (use with --latest)
+  --latest              Use latest snapshot from store
+  --cfg CFG             Path to strategy config
+  --schema-version {1,2}
+                        Strategy schema version (default: 2).
+  --out OUT             Output strategy JSON path (or '-' for stdout)
+  --no-clobber          Fail if output file already exists.

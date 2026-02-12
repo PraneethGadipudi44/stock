@@ -1,3 +1,4 @@
 tests/fixtures/replay_golden.csv -text
 tests/fixtures/tune_explain_summary_golden.json -text
 tests/fixtures/strategy_golden.json -text
+tests/fixtures/strategy_golden_v2.json -text
