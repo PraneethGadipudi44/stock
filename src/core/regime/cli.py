@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
 from .config import load_regime_config, validate_regime_config
+from .diff import diff_json
 from .engine import build_regime_snapshot
 from .explain import build_explain_payload, explain_json
 from .metrics_builder import MetricsBuildError, build_metrics_from_prices
@@ -226,6 +227,22 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Fail if output file already exists.",
     )
 
+    diff_parser = subparsers.add_parser(
+        "diff", help="Compare two regime snapshots"
+    )
+    diff_parser.add_argument("--prev", required=True, help="Path to prev snapshot JSON")
+    diff_parser.add_argument("--curr", required=True, help="Path to curr snapshot JSON")
+    diff_parser.add_argument(
+        "--out",
+        default="",
+        help="Output diff JSON path (or '-' for stdout)",
+    )
+    diff_parser.add_argument(
+        "--no-clobber",
+        action="store_true",
+        help="Fail if output file already exists.",
+    )
+
     args = parser.parse_args(argv)
     global DEBUG
     DEBUG = bool(args.debug)
@@ -243,6 +260,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             return _run_strategy(args)
         if args.command == "trace":
             return _run_trace(args)
+        if args.command == "diff":
+            return _run_diff(args)
         return 1
     except CliError as exc:
         _eprint(str(exc))
@@ -523,6 +542,21 @@ def _run_trace(args: argparse.Namespace) -> int:
     else:
         print(output)
 
+    return 0
+
+
+def _run_diff(args: argparse.Namespace) -> int:
+    prev = json.loads(Path(args.prev).read_text(encoding="utf-8"))
+    curr = json.loads(Path(args.curr).read_text(encoding="utf-8"))
+    try:
+        output = diff_json(prev, curr)
+    except ValueError as exc:
+        raise BadInputError(str(exc)) from exc
+
+    if args.out and args.out != "-":
+        _write_text(Path(args.out), output, args.no_clobber)
+    else:
+        print(output)
     return 0
 
 

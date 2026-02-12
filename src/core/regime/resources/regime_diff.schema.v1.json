@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/regime_diff.schema.v1.json",
+  "title": "RegimeDiff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_id_prev",
+    "snapshot_id_curr",
+    "as_of_prev",
+    "as_of_curr",
+    "snapshot_schema_version",
+    "market_phase_changed",
+    "trend_regime_changed",
+    "vol_regime_changed",
+    "risk_tone_changed",
+    "confidence_delta",
+    "change_drivers_added",
+    "change_drivers_removed",
+    "metrics_delta",
+    "diff_summary"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "snapshot_id_prev": { "type": "string" },
+    "snapshot_id_curr": { "type": "string" },
+    "as_of_prev": { "type": "string" },
+    "as_of_curr": { "type": "string" },
+    "snapshot_schema_version": { "type": "integer" },
+    "market_phase_changed": { "type": "boolean" },
+    "trend_regime_changed": { "type": "boolean" },
+    "vol_regime_changed": { "type": "boolean" },
+    "risk_tone_changed": { "type": "boolean" },
+    "confidence_delta": { "type": "number" },
+    "change_drivers_added": { "type": "array", "items": { "type": "string" } },
+    "change_drivers_removed": { "type": "array", "items": { "type": "string" } },
+    "metrics_delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vote_disagreement_score_delta",
+        "recent_change_window_days_delta"
+      ],
+      "properties": {
+        "vote_disagreement_score_delta": { "type": "number" },
+        "recent_change_window_days_delta": { "type": "integer" }
+      }
+    },
+    "diff_summary": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 5,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 200
+      }
+    }
+  }
+}

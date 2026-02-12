@@ -1,0 +1,8 @@
+usage: cli.py diff [-h] --prev PREV --curr CURR [--out OUT] [--no-clobber]
+
+options:
+  -h, --help    show this help message and exit
+  --prev PREV   Path to prev snapshot JSON
+  --curr CURR   Path to curr snapshot JSON
+  --out OUT     Output diff JSON path (or '-' for stdout)
+  --no-clobber  Fail if output file already exists.
