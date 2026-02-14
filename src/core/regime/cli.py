@@ -64,6 +64,18 @@ from .filings_adapter import (
     normalize_submissions,
     sha256_hex as filings_sha256_hex,
 )
+from .earnings_adapter import (
+    EarningsError,
+    build_earnings,
+    build_meta as build_earnings_meta,
+    cache_paths as earnings_cache_paths,
+    inputs_hash as earnings_inputs_hash,
+    load_filings as load_earnings_filings,
+    load_filings_meta as load_earnings_filings_meta,
+    load_prices_calendar,
+    load_prices_meta as load_earnings_prices_meta,
+    sha256_hex as earnings_sha256_hex,
+)
 from .models import RegimeSnapshot
 from .prices_io import PriceRow, PricesIOError, read_prices_csv, rows_to_records
 from .resources import default_config_path
@@ -471,6 +483,43 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Fail if output file already exists.",
     )
 
+    earnings_parser = subparsers.add_parser(
+        "ingest-earnings",
+        help="Derive an earnings calendar from prices and filings",
+    )
+    earnings_parser.add_argument("--start", required=True, help="Start date (YYYY-MM-DD)")
+    earnings_parser.add_argument("--end", required=True, help="End date (YYYY-MM-DD)")
+    earnings_parser.add_argument("--prices", required=True, help="Prices CSV path")
+    earnings_parser.add_argument(
+        "--prices-meta", required=True, help="Prices meta JSON path"
+    )
+    earnings_parser.add_argument("--filings", required=True, help="Filings JSONL path")
+    earnings_parser.add_argument(
+        "--filings-meta", required=True, help="Filings meta JSON path"
+    )
+    earnings_parser.add_argument("--out", required=True, help="Output earnings JSONL path")
+    earnings_parser.add_argument(
+        "--meta-out", default="", help="Optional output earnings meta JSON path"
+    )
+    earnings_parser.add_argument(
+        "--cache-dir", default=".cache/earnings", help="Cache directory"
+    )
+    earnings_parser.add_argument(
+        "--cache-only",
+        action="store_true",
+        help="Fail if cache is missing; do not recompute.",
+    )
+    earnings_parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Recompute even if cache exists.",
+    )
+    earnings_parser.add_argument(
+        "--no-clobber",
+        action="store_true",
+        help="Fail if output file already exists.",
+    )
+
     args = parser.parse_args(argv)
     global DEBUG
     DEBUG = bool(args.debug)
@@ -498,6 +547,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             return _run_ingest_catalysts(args)
         if args.command == "brief":
             return _run_brief(args)
+        if args.command == "ingest-earnings":
+            return _run_ingest_earnings(args)
         return 1
     except CliError as exc:
         _eprint(str(exc))
@@ -1101,6 +1152,101 @@ def _run_ingest_catalysts(args: argparse.Namespace) -> int:
 
     if rows == 0:
         raise InsufficientDataError("No catalysts in requested join.")
+
+    return 0
+
+
+def _run_ingest_earnings(args: argparse.Namespace) -> int:
+    start = _parse_date(args.start).isoformat()
+    end = _parse_date(args.end).isoformat()
+    if start > end:
+        raise BadInputError("Start date must be <= end date.")
+
+    prices_path = Path(args.prices)
+    prices_meta_path = Path(args.prices_meta)
+    filings_path = Path(args.filings)
+    filings_meta_path = Path(args.filings_meta)
+
+    for path, label in [
+        (prices_path, "prices"),
+        (prices_meta_path, "prices meta"),
+        (filings_path, "filings"),
+        (filings_meta_path, "filings meta"),
+    ]:
+        if not path.exists():
+            raise BadInputError(f"{label} file not found: {path}")
+
+    try:
+        prices_meta = load_earnings_prices_meta(prices_meta_path)
+        filings_meta = load_earnings_filings_meta(filings_meta_path)
+    except EarningsError as exc:
+        raise BadInputError(str(exc)) from exc
+
+    prices_bytes = prices_path.read_bytes()
+    filings_bytes = filings_path.read_bytes()
+
+    prices_hash = earnings_sha256_hex(prices_bytes)
+    if prices_meta.get("normalized_csv_hash") != prices_hash:
+        raise ProviderError("Cache corruption detected (prices hash mismatch).")
+
+    filings_hash = earnings_sha256_hex(filings_bytes)
+    if filings_meta.get("normalized_jsonl_hash") != filings_hash:
+        raise ProviderError("Cache corruption detected (filings hash mismatch).")
+
+    inputs_digest = earnings_inputs_hash(start, end, prices_hash, filings_hash)
+
+    cache_dir = Path(args.cache_dir)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    paths = earnings_cache_paths(cache_dir, inputs_digest)
+    paths.jsonl.parent.mkdir(parents=True, exist_ok=True)
+
+    cache_hit = paths.jsonl.exists() and paths.meta.exists()
+    if args.cache_only and not cache_hit:
+        raise ProviderError("Cache miss and --cache-only set.")
+
+    if cache_hit and not args.refresh:
+        cached_jsonl = paths.jsonl.read_bytes()
+        cached_meta = json.loads(paths.meta.read_text(encoding="utf-8"))
+        cached_hash = earnings_sha256_hex(cached_jsonl)
+        if cached_meta.get("normalized_jsonl_hash") != cached_hash:
+            raise ProviderError("Cache corruption detected (earnings hash mismatch).")
+        jsonl_bytes = cached_jsonl
+        meta_text = json.dumps(cached_meta, indent=2, sort_keys=True)
+    else:
+        try:
+            price_dates = load_prices_calendar(prices_path)
+            filings_records = load_earnings_filings(filings_path)
+            jsonl_text, rows = build_earnings(
+                filings_records, price_dates, start, end
+            )
+        except EarningsError as exc:
+            raise ProviderError(str(exc)) from exc
+
+        jsonl_bytes = jsonl_text.encode("utf-8")
+        jsonl_hash = earnings_sha256_hex(jsonl_bytes)
+        meta = build_earnings_meta(
+            prices_meta=prices_meta,
+            filings_meta=filings_meta,
+            inputs_digest=inputs_digest,
+            jsonl_hash=jsonl_hash,
+            rows=rows,
+            cache_hit=bool(cache_hit),
+        )
+        meta_text = json.dumps(meta, indent=2, sort_keys=True)
+
+        paths.jsonl.write_bytes(jsonl_bytes)
+        paths.meta.write_text(meta_text, encoding="utf-8")
+
+    out_path = Path(args.out)
+    meta_out = Path(args.meta_out) if args.meta_out else out_path.with_suffix(
+        out_path.suffix + ".meta.json"
+    )
+
+    _check_no_clobber(out_path, args.no_clobber)
+    _check_no_clobber(meta_out, args.no_clobber)
+
+    out_path.write_bytes(jsonl_bytes)
+    meta_out.write_text(meta_text, encoding="utf-8")
 
     return 0
 

@@ -1,0 +1,23 @@
+usage: cli.py ingest-earnings [-h] --start START --end END --prices PRICES
+                              --prices-meta PRICES_META --filings FILINGS
+                              --filings-meta FILINGS_META --out OUT
+                              [--meta-out META_OUT] [--cache-dir CACHE_DIR]
+                              [--cache-only] [--refresh] [--no-clobber]
+
+options:
+  -h, --help            show this help message and exit
+  --start START         Start date (YYYY-MM-DD)
+  --end END             End date (YYYY-MM-DD)
+  --prices PRICES       Prices CSV path
+  --prices-meta PRICES_META
+                        Prices meta JSON path
+  --filings FILINGS     Filings JSONL path
+  --filings-meta FILINGS_META
+                        Filings meta JSON path
+  --out OUT             Output earnings JSONL path
+  --meta-out META_OUT   Optional output earnings meta JSON path
+  --cache-dir CACHE_DIR
+                        Cache directory
+  --cache-only          Fail if cache is missing; do not recompute.
+  --refresh             Recompute even if cache exists.
+  --no-clobber          Fail if output file already exists.
