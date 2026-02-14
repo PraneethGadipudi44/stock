@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/regime_catalysts_meta.schema.v1.json",
+  "title": "RegimeCatalystsMeta",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "adapter_version",
+    "inputs",
+    "inputs_hash",
+    "normalized_jsonl_hash",
+    "rows",
+    "cache_hit"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "adapter_version": { "type": "string", "const": "catalysts_adapter_v1" },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prices", "filings"],
+      "properties": {
+        "prices": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_hash",
+            "normalized_csv_hash",
+            "request_canonical",
+            "cache_key"
+          ],
+          "properties": {
+            "source_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "normalized_csv_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "request_canonical": { "type": "string" },
+            "cache_key": { "type": "string" }
+          }
+        },
+        "filings": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_hash",
+            "normalized_jsonl_hash",
+            "request_canonical",
+            "cache_key"
+          ],
+          "properties": {
+            "source_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "normalized_jsonl_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "request_canonical": { "type": "string" },
+            "cache_key": { "type": "string" }
+          }
+        }
+      }
+    },
+    "inputs_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "normalized_jsonl_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "rows": { "type": "integer", "minimum": 0 },
+    "cache_hit": { "type": "boolean" }
+  }
+}

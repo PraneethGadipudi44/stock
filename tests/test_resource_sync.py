@@ -21,6 +21,8 @@ def test_packaged_resources_match_repo_files():
         "regime_prices_meta.schema.v1.json": root / "contracts" / "regime_prices_meta.schema.v1.json",
         "regime_filings_meta.schema.v1.json": root / "contracts" / "regime_filings_meta.schema.v1.json",
         "regime_filing_record.schema.v1.json": root / "contracts" / "regime_filing_record.schema.v1.json",
+        "regime_catalyst_record.schema.v1.json": root / "contracts" / "regime_catalyst_record.schema.v1.json",
+        "regime_catalysts_meta.schema.v1.json": root / "contracts" / "regime_catalysts_meta.schema.v1.json",
     }
 
     for name, path in mapping.items():

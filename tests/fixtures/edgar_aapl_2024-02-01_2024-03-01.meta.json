@@ -1,0 +1,21 @@
+{
+  "adapter_version": "filings_adapter_v1",
+  "cache_hit": true,
+  "cache_key": "7be65d7bb2e7d6e1",
+  "cik": "0000320193",
+  "end": "2024-03-01",
+  "forms": [
+    "10-K",
+    "10-Q",
+    "8-K"
+  ],
+  "normalized_jsonl_hash": "885fd78333eb12491a404ec5b56f9dce31963f554b0e175f0b8f3e4e285c8133",
+  "provider": "edgar",
+  "provider_version": "submissions+archives_v1",
+  "request_canonical": "provider=edgar&ticker=AAPL&cik=0000320193&start=2024-02-01&end=2024-03-01&forms=10-K,10-Q,8-K&tickers_endpoint=/files/company_tickers.json&submissions_endpoint=/submissions/CIK0000320193.json",
+  "rows": 2,
+  "schema_version": 1,
+  "source_hash": "a466505e017b8e41b7c356bed1447dca2a52ab0798173527f0d025da934a80c1",
+  "start": "2024-02-01",
+  "ticker": "AAPL"
+}

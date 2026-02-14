@@ -1,0 +1,21 @@
+usage: cli.py ingest-catalysts [-h] --prices PRICES --prices-meta PRICES_META
+                               --filings FILINGS --filings-meta FILINGS_META
+                               --out OUT [--meta-out META_OUT]
+                               [--cache-dir CACHE_DIR] [--cache-only]
+                               [--refresh] [--no-clobber]
+
+options:
+  -h, --help            show this help message and exit
+  --prices PRICES       Path to prices CSV
+  --prices-meta PRICES_META
+                        Path to prices meta JSON
+  --filings FILINGS     Path to filings JSONL
+  --filings-meta FILINGS_META
+                        Path to filings meta JSON
+  --out OUT             Output catalysts JSONL path
+  --meta-out META_OUT   Optional output metadata JSON path
+  --cache-dir CACHE_DIR
+                        Cache directory for derived catalysts
+  --cache-only          Fail if cache is missing; do not recompute.
+  --refresh             Recompute even if cache exists.
+  --no-clobber          Fail if output file already exists.

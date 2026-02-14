@@ -14,6 +14,19 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from .config import load_regime_config, validate_regime_config
 from .diff import diff_json
+from .catalysts_adapter import (
+    CatalystError,
+    CatalystNoDataError,
+    build_catalysts,
+    build_meta as build_catalysts_meta,
+    cache_paths as catalysts_cache_paths,
+    inputs_hash as catalysts_inputs_hash,
+    load_filings,
+    load_filings_meta,
+    load_prices_dates,
+    load_prices_meta,
+    sha256_hex as catalysts_sha256_hex,
+)
 from .engine import build_regime_snapshot
 from .explain import build_explain_payload, explain_json
 from .metrics_builder import MetricsBuildError, build_metrics_from_prices
@@ -342,6 +355,61 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Fail if output file already exists.",
     )
 
+    catalysts_parser = subparsers.add_parser(
+        "ingest-catalysts",
+        help="Join prices and filings into a catalyst calendar",
+    )
+    catalysts_parser.add_argument(
+        "--prices",
+        required=True,
+        help="Path to prices CSV",
+    )
+    catalysts_parser.add_argument(
+        "--prices-meta",
+        required=True,
+        help="Path to prices meta JSON",
+    )
+    catalysts_parser.add_argument(
+        "--filings",
+        required=True,
+        help="Path to filings JSONL",
+    )
+    catalysts_parser.add_argument(
+        "--filings-meta",
+        required=True,
+        help="Path to filings meta JSON",
+    )
+    catalysts_parser.add_argument(
+        "--out",
+        required=True,
+        help="Output catalysts JSONL path",
+    )
+    catalysts_parser.add_argument(
+        "--meta-out",
+        default="",
+        help="Optional output metadata JSON path",
+    )
+    catalysts_parser.add_argument(
+        "--cache-dir",
+        default=".cache/catalysts",
+        help="Cache directory for derived catalysts",
+    )
+    catalysts_parser.add_argument(
+        "--cache-only",
+        action="store_true",
+        help="Fail if cache is missing; do not recompute.",
+    )
+    catalysts_parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Recompute even if cache exists.",
+    )
+    catalysts_parser.add_argument(
+        "--no-clobber",
+        action="store_true",
+        help="Fail if output file already exists.",
+    )
+
     args = parser.parse_args(argv)
     global DEBUG
     DEBUG = bool(args.debug)
@@ -365,6 +433,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             return _run_ingest_prices(args)
         if args.command == "ingest-filings":
             return _run_ingest_filings(args)
+        if args.command == "ingest-catalysts":
+            return _run_ingest_catalysts(args)
         return 1
     except CliError as exc:
         _eprint(str(exc))
@@ -874,6 +944,100 @@ def _run_ingest_filings(args: argparse.Namespace) -> int:
 
     paths.jsonl.write_bytes(jsonl_bytes)
     paths.meta.write_text(meta_text, encoding="utf-8")
+
+    return 0
+
+
+def _run_ingest_catalysts(args: argparse.Namespace) -> int:
+    prices_path = Path(args.prices)
+    prices_meta_path = Path(args.prices_meta)
+    filings_path = Path(args.filings)
+    filings_meta_path = Path(args.filings_meta)
+
+    if not prices_path.exists():
+        raise BadInputError(f"Prices file not found: {prices_path}")
+    if not prices_meta_path.exists():
+        raise BadInputError(f"Prices meta file not found: {prices_meta_path}")
+    if not filings_path.exists():
+        raise BadInputError(f"Filings file not found: {filings_path}")
+    if not filings_meta_path.exists():
+        raise BadInputError(f"Filings meta file not found: {filings_meta_path}")
+
+    try:
+        prices_meta = load_prices_meta(prices_meta_path)
+        filings_meta = load_filings_meta(filings_meta_path)
+    except CatalystError as exc:
+        raise BadInputError(str(exc)) from exc
+
+    prices_bytes = prices_path.read_bytes()
+    filings_bytes = filings_path.read_bytes()
+
+    prices_hash = catalysts_sha256_hex(prices_bytes)
+    if prices_meta.get("normalized_csv_hash") != prices_hash:
+        raise ProviderError("Cache corruption detected (prices hash mismatch).")
+
+    filings_hash = catalysts_sha256_hex(filings_bytes)
+    if filings_meta.get("normalized_jsonl_hash") != filings_hash:
+        raise ProviderError("Cache corruption detected (filings hash mismatch).")
+
+    inputs_digest = catalysts_inputs_hash(prices_hash, filings_hash)
+
+    cache_dir = Path(args.cache_dir)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    paths = catalysts_cache_paths(cache_dir, inputs_digest)
+    paths.jsonl.parent.mkdir(parents=True, exist_ok=True)
+
+    cache_hit = paths.jsonl.exists() and paths.meta.exists()
+    if args.cache_only and not cache_hit:
+        raise ProviderError("Cache miss and --cache-only set.")
+
+    if cache_hit and not args.refresh:
+        cached_jsonl = paths.jsonl.read_bytes()
+        cached_meta = json.loads(paths.meta.read_text(encoding="utf-8"))
+        cached_hash = catalysts_sha256_hex(cached_jsonl)
+        if cached_meta.get("normalized_jsonl_hash") != cached_hash:
+            raise ProviderError("Cache corruption detected (catalysts hash mismatch).")
+        jsonl_bytes = cached_jsonl
+        meta_text = json.dumps(cached_meta, indent=2, sort_keys=True)
+        rows = int(cached_meta.get("rows", 0))
+    else:
+        try:
+            price_dates = load_prices_dates(prices_path)
+            filings_records = load_filings(filings_path)
+            jsonl_text, rows = build_catalysts(filings_records, price_dates)
+        except CatalystNoDataError as exc:
+            raise InsufficientDataError(str(exc)) from exc
+        except CatalystError as exc:
+            raise ProviderError(str(exc)) from exc
+
+        jsonl_bytes = jsonl_text.encode("utf-8")
+        jsonl_hash = catalysts_sha256_hex(jsonl_bytes)
+        meta = build_catalysts_meta(
+            prices_meta=prices_meta,
+            filings_meta=filings_meta,
+            inputs_digest=inputs_digest,
+            jsonl_hash=jsonl_hash,
+            rows=rows,
+            cache_hit=bool(cache_hit),
+        )
+        meta_text = json.dumps(meta, indent=2, sort_keys=True)
+
+        paths.jsonl.write_bytes(jsonl_bytes)
+        paths.meta.write_text(meta_text, encoding="utf-8")
+
+    out_path = Path(args.out)
+    meta_out = Path(args.meta_out) if args.meta_out else out_path.with_suffix(
+        out_path.suffix + ".meta.json"
+    )
+
+    _check_no_clobber(out_path, args.no_clobber)
+    _check_no_clobber(meta_out, args.no_clobber)
+
+    out_path.write_bytes(jsonl_bytes)
+    meta_out.write_text(meta_text, encoding="utf-8")
+
+    if rows == 0:
+        raise InsufficientDataError("No catalysts in requested join.")
 
     return 0
 

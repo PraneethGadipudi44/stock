@@ -1,0 +1,18 @@
+{
+  "adapter_version": "prices_adapter_v1",
+  "cache_hit": true,
+  "cache_key": "266e142cbd6592cb",
+  "date_semantics": "end_inclusive",
+  "end": "2024-03-01",
+  "endpoint": "/v2/aggs/ticker/AAPL/range/1/day/2024-02-01/2024-03-01",
+  "normalized_csv_hash": "2c9034d0a664a9cc7fbe6709394d741ef057542a7af522191598c980077a5cd6",
+  "provider": "polygon",
+  "provider_version": "v2",
+  "request_canonical": "/v2/aggs/ticker/AAPL/range/1/day/2024-02-01/2024-03-01?adjusted=true&sort=asc&limit=50000",
+  "rounding_mode": "HALF_UP",
+  "rows": 2,
+  "schema_version": 1,
+  "source_hash": "8df6a99355ae66260b9ba58f1c94f96fd34ddbe936ccbf4db3643cde19727cd8",
+  "start": "2024-02-01",
+  "symbol": "AAPL"
+}
