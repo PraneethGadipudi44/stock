@@ -40,8 +40,10 @@ def sha256_hex(data: bytes) -> str:
     return sha256(data).hexdigest()
 
 
-def inputs_hash(prices_hash: str, filings_hash: str, catalysts_hash: str) -> str:
-    payload = f"{prices_hash}\n{filings_hash}\n{catalysts_hash}\n".encode("utf-8")
+def inputs_hash(as_of: str, prices_hash: str, filings_hash: str, catalysts_hash: str) -> str:
+    payload = (
+        f"{as_of}\n{prices_hash}\n{filings_hash}\n{catalysts_hash}\n".encode("utf-8")
+    )
     return sha256_hex(payload)
 
 
@@ -93,7 +95,7 @@ def load_catalysts_meta(path: Path) -> Dict[str, Any]:
         raise BriefError("Catalysts meta is not valid JSON.") from exc
     _require_keys(
         payload,
-        ["normalized_jsonl_hash"],
+        ["normalized_jsonl_hash", "inputs_hash"],
         "catalysts_meta",
     )
     return payload
@@ -219,6 +221,7 @@ def build_brief(
     catalysts: List[Dict[str, Any]],
     filings_rows: int,
     filings_tickers: List[str],
+    prices_rows: int,
 ) -> Tuple[Dict[str, Any], Dict[str, int]]:
     if not DATE_RE.match(as_of):
         raise BriefError("Invalid as_of date.")
@@ -350,7 +353,7 @@ def build_brief(
         ],
         "price_moves": price_moves,
         "data_coverage": {
-            "prices_rows": sum(len(dates[t]) for t in dates),
+            "prices_rows": int(prices_rows),
             "filings_rows": filings_rows,
             "catalysts_rows": len(catalysts),
             "tickers_in_prices": tickers_in_prices,
@@ -419,6 +422,7 @@ def build_meta(
             },
             "catalysts": {
                 "normalized_jsonl_hash": catalysts_meta["normalized_jsonl_hash"],
+                "inputs_hash": catalysts_meta["inputs_hash"],
             },
         },
         "inputs_hash": inputs_digest,

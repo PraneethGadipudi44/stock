@@ -57,9 +57,10 @@
         "catalysts": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["normalized_jsonl_hash"],
+          "required": ["normalized_jsonl_hash", "inputs_hash"],
           "properties": {
-            "normalized_jsonl_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+            "normalized_jsonl_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "inputs_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
           }
         }
       }

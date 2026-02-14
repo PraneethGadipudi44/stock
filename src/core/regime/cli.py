@@ -34,8 +34,8 @@ from .brief_adapter import (
     build_meta as build_brief_meta,
     cache_paths as brief_cache_paths,
     inputs_hash as brief_inputs_hash,
-    load_catalysts_meta,
     load_catalysts,
+    load_catalysts_meta,
     load_filings_meta as load_brief_filings_meta,
     load_filings_tickers,
     load_prices,
@@ -1151,7 +1151,7 @@ def _run_brief(args: argparse.Namespace) -> int:
     if catalysts_meta.get("normalized_jsonl_hash") != catalysts_hash:
         raise ProviderError("Cache corruption detected (catalysts hash mismatch).")
 
-    inputs_digest = brief_inputs_hash(prices_hash, filings_hash, catalysts_hash)
+    inputs_digest = brief_inputs_hash(as_of, prices_hash, filings_hash, catalysts_hash)
 
     cache_dir = Path(args.cache_dir)
     cache_dir.mkdir(parents=True, exist_ok=True)
@@ -1192,6 +1192,7 @@ def _run_brief(args: argparse.Namespace) -> int:
                 catalysts=catalysts,
                 filings_rows=filings_rows,
                 filings_tickers=filings_tickers,
+                prices_rows=prices_rows,
             )
         except BriefNoDataError as exc:
             raise InsufficientDataError(str(exc)) from exc
