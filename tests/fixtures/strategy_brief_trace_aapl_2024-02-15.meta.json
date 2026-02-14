@@ -1,0 +1,30 @@
+{
+  "adapter_version": "strategy_brief_trace_adapter_v1",
+  "cache_hit": false,
+  "inputs": {
+    "brief": {
+      "normalized_brief_hash": "835c27224cda25982b967974a888ccf46307b1210de7cd0493f7ffaae335ee53"
+    },
+    "catalysts": {
+      "normalized_jsonl_hash": "30fb58099b5a30b6f19c9544a96b872b4ca06bdded69491cacb7cf921b15443e"
+    },
+    "earnings": {
+      "normalized_jsonl_hash": "c5c56e0fe78fb4bd45d32163c69c38b6aa3ee109c9be42b1055a08f7630d8983"
+    },
+    "markdown": {
+      "markdown_hash": null
+    },
+    "strategy": {
+      "normalized_strategy_hash": "4610641d0fe02046c36babd722f08bd058d50415a7bf0cb28c74567ec6054b64"
+    }
+  },
+  "inputs_hash": "62158e674429d2b00d6b023f59451010e6575702082bd8b14320bb08f1afe76d",
+  "normalized_trace_hash": "244241bd7576ebe73e2eb11a0394a16538f7f11e39c6e2f1e4637e55bee379e9",
+  "rows": {
+    "playbook_event_risk": 1,
+    "playbook_momentum": 0,
+    "playbook_watchlist": 1,
+    "signals_rows": 1
+  },
+  "schema_version": 1
+}

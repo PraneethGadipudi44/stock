@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/regime_strategy_brief_trace.schema.v1.json",
+  "title": "RegimeStrategyBriefTrace",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "as_of", "inputs_hash", "artifacts", "coverage"],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "as_of": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "inputs_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["brief", "earnings", "catalysts", "strategy", "markdown"],
+      "properties": {
+        "brief": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["normalized_brief_hash"],
+          "properties": {
+            "normalized_brief_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          }
+        },
+        "earnings": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["normalized_jsonl_hash"],
+          "properties": {
+            "normalized_jsonl_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          }
+        },
+        "catalysts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["normalized_jsonl_hash"],
+          "properties": {
+            "normalized_jsonl_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          }
+        },
+        "strategy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["normalized_strategy_hash"],
+          "properties": {
+            "normalized_strategy_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          }
+        },
+        "markdown": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["markdown_hash"],
+          "properties": {
+            "markdown_hash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }
+          }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signals_rows",
+        "playbook_watchlist",
+        "playbook_event_risk",
+        "playbook_momentum"
+      ],
+      "properties": {
+        "signals_rows": { "type": "integer", "minimum": 0 },
+        "playbook_watchlist": { "type": "integer", "minimum": 0 },
+        "playbook_event_risk": { "type": "integer", "minimum": 0 },
+        "playbook_momentum": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

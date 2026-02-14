@@ -1,0 +1,36 @@
+usage: cli.py trace-strategy-brief [-h] --as-of AS_OF --brief BRIEF
+                                   --brief-meta BRIEF_META --earnings EARNINGS
+                                   --earnings-meta EARNINGS_META
+                                   --catalysts CATALYSTS
+                                   --catalysts-meta CATALYSTS_META
+                                   --strategy STRATEGY
+                                   --strategy-meta STRATEGY_META
+                                   [--markdown MARKDOWN] --out OUT
+                                   [--meta-out META_OUT]
+                                   [--cache-dir CACHE_DIR] [--cache-only]
+                                   [--refresh] [--no-clobber]
+
+options:
+  -h, --help            show this help message and exit
+  --as-of AS_OF         As-of date (YYYY-MM-DD)
+  --brief BRIEF         Brief JSON path
+  --brief-meta BRIEF_META
+                        Brief meta JSON path
+  --earnings EARNINGS   Earnings JSONL path
+  --earnings-meta EARNINGS_META
+                        Earnings meta JSON path
+  --catalysts CATALYSTS
+                        Catalysts JSONL path
+  --catalysts-meta CATALYSTS_META
+                        Catalysts meta JSON path
+  --strategy STRATEGY   Strategy JSON path
+  --strategy-meta STRATEGY_META
+                        Strategy meta JSON path
+  --markdown MARKDOWN   Optional strategy markdown path
+  --out OUT             Output trace JSON path
+  --meta-out META_OUT   Optional output trace meta JSON path
+  --cache-dir CACHE_DIR
+                        Cache directory
+  --cache-only          Fail if cache is missing; do not recompute.
+  --refresh             Recompute even if cache exists.
+  --no-clobber          Fail if output file already exists.

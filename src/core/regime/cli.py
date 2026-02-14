@@ -104,6 +104,21 @@ from .brief_strategy_adapter import (
     _load_jsonl as load_strategy_jsonl,
     _require_record_keys as require_strategy_record_keys,
 )
+from .strategy_brief_trace_adapter import (
+    StrategyBriefTraceDataError,
+    StrategyBriefTraceMetaError,
+    build_trace_meta as build_strategy_brief_trace_meta,
+    build_trace as build_strategy_brief_trace,
+    cache_paths as strategy_brief_trace_cache_paths,
+    inputs_hash as strategy_brief_trace_inputs_hash,
+    load_brief_meta as load_trace_brief_meta,
+    load_catalysts_meta as load_trace_catalysts_meta,
+    load_earnings_meta as load_trace_earnings_meta,
+    load_strategy as load_trace_strategy_payload,
+    load_strategy_meta as load_trace_strategy_meta,
+    sha256_hex as strategy_brief_trace_sha256_hex,
+    strategy_coverage,
+)
 
 DEBUG = False
 
@@ -302,6 +317,65 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Output trace JSON path (or '-' for stdout)",
     )
     trace_parser.add_argument(
+        "--no-clobber",
+        action="store_true",
+        help="Fail if output file already exists.",
+    )
+
+    trace_brief_parser = subparsers.add_parser(
+        "trace-strategy-brief",
+        help="Link brief-derived strategy artifacts",
+    )
+    trace_brief_parser.add_argument(
+        "--as-of", required=True, help="As-of date (YYYY-MM-DD)"
+    )
+    trace_brief_parser.add_argument(
+        "--brief", required=True, help="Brief JSON path"
+    )
+    trace_brief_parser.add_argument(
+        "--brief-meta", required=True, help="Brief meta JSON path"
+    )
+    trace_brief_parser.add_argument(
+        "--earnings", required=True, help="Earnings JSONL path"
+    )
+    trace_brief_parser.add_argument(
+        "--earnings-meta", required=True, help="Earnings meta JSON path"
+    )
+    trace_brief_parser.add_argument(
+        "--catalysts", required=True, help="Catalysts JSONL path"
+    )
+    trace_brief_parser.add_argument(
+        "--catalysts-meta", required=True, help="Catalysts meta JSON path"
+    )
+    trace_brief_parser.add_argument(
+        "--strategy", required=True, help="Strategy JSON path"
+    )
+    trace_brief_parser.add_argument(
+        "--strategy-meta", required=True, help="Strategy meta JSON path"
+    )
+    trace_brief_parser.add_argument(
+        "--markdown", default="", help="Optional strategy markdown path"
+    )
+    trace_brief_parser.add_argument(
+        "--out", required=True, help="Output trace JSON path"
+    )
+    trace_brief_parser.add_argument(
+        "--meta-out", default="", help="Optional output trace meta JSON path"
+    )
+    trace_brief_parser.add_argument(
+        "--cache-dir", default=".cache/traces", help="Cache directory"
+    )
+    trace_brief_parser.add_argument(
+        "--cache-only",
+        action="store_true",
+        help="Fail if cache is missing; do not recompute.",
+    )
+    trace_brief_parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Recompute even if cache exists.",
+    )
+    trace_brief_parser.add_argument(
         "--no-clobber",
         action="store_true",
         help="Fail if output file already exists.",
@@ -606,6 +680,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             return _run_strategy(args)
         if args.command == "trace":
             return _run_trace(args)
+        if args.command == "trace-strategy-brief":
+            return _run_trace_strategy_brief(args)
         if args.command == "diff":
             return _run_diff(args)
         if args.command == "ingest-prices":
@@ -899,6 +975,145 @@ def _run_trace(args: argparse.Namespace) -> int:
         _write_text(Path(args.out), output, args.no_clobber)
     else:
         print(output)
+
+    return 0
+
+
+def _run_trace_strategy_brief(args: argparse.Namespace) -> int:
+    as_of = args.as_of.strip()
+    if not as_of:
+        raise BadInputError("as_of is required.")
+    _parse_date(as_of)
+
+    brief_path = Path(args.brief)
+    brief_meta_path = Path(args.brief_meta)
+    earnings_path = Path(args.earnings)
+    earnings_meta_path = Path(args.earnings_meta)
+    catalysts_path = Path(args.catalysts)
+    catalysts_meta_path = Path(args.catalysts_meta)
+    strategy_path = Path(args.strategy)
+    strategy_meta_path = Path(args.strategy_meta)
+
+    for path, label in [
+        (brief_path, "brief"),
+        (brief_meta_path, "brief meta"),
+        (earnings_path, "earnings"),
+        (earnings_meta_path, "earnings meta"),
+        (catalysts_path, "catalysts"),
+        (catalysts_meta_path, "catalysts meta"),
+        (strategy_path, "strategy"),
+        (strategy_meta_path, "strategy meta"),
+    ]:
+        if not path.exists():
+            raise BadInputError(f"{label} file not found: {path}")
+
+    try:
+        brief_meta = load_trace_brief_meta(brief_meta_path)
+        earnings_meta = load_trace_earnings_meta(earnings_meta_path)
+        catalysts_meta = load_trace_catalysts_meta(catalysts_meta_path)
+        strategy_meta = load_trace_strategy_meta(strategy_meta_path)
+    except StrategyBriefTraceMetaError as exc:
+        raise BadInputError(str(exc)) from exc
+
+    brief_bytes = brief_path.read_bytes()
+    earnings_bytes = earnings_path.read_bytes()
+    catalysts_bytes = catalysts_path.read_bytes()
+    strategy_bytes = strategy_path.read_bytes()
+
+    brief_hash = strategy_brief_trace_sha256_hex(brief_bytes)
+    if brief_meta.get("normalized_brief_hash") != brief_hash:
+        raise ProviderError("Cache corruption detected (brief hash mismatch).")
+
+    earnings_hash = strategy_brief_trace_sha256_hex(earnings_bytes)
+    if earnings_meta.get("normalized_jsonl_hash") != earnings_hash:
+        raise ProviderError("Cache corruption detected (earnings hash mismatch).")
+
+    catalysts_hash = strategy_brief_trace_sha256_hex(catalysts_bytes)
+    if catalysts_meta.get("normalized_jsonl_hash") != catalysts_hash:
+        raise ProviderError("Cache corruption detected (catalysts hash mismatch).")
+
+    strategy_hash = strategy_brief_trace_sha256_hex(strategy_bytes)
+    if strategy_meta.get("normalized_strategy_hash") != strategy_hash:
+        raise ProviderError("Cache corruption detected (strategy hash mismatch).")
+
+    markdown_hash: Optional[str] = None
+    if args.markdown:
+        md_path = Path(args.markdown)
+        if not md_path.exists():
+            raise BadInputError(f"markdown file not found: {md_path}")
+        markdown_hash = strategy_brief_trace_sha256_hex(md_path.read_bytes())
+
+    inputs_digest = strategy_brief_trace_inputs_hash(
+        as_of, brief_hash, earnings_hash, catalysts_hash, strategy_hash, markdown_hash
+    )
+
+    cache_dir = Path(args.cache_dir)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    paths = strategy_brief_trace_cache_paths(cache_dir, inputs_digest)
+    paths.trace.parent.mkdir(parents=True, exist_ok=True)
+
+    cache_hit = paths.trace.exists() and paths.meta.exists()
+    if args.cache_only and not cache_hit:
+        raise ProviderError("Cache miss and --cache-only set.")
+
+    if cache_hit and not args.refresh:
+        cached_trace = paths.trace.read_bytes()
+        cached_meta = json.loads(paths.meta.read_text(encoding="utf-8"))
+        cached_hash = strategy_brief_trace_sha256_hex(cached_trace)
+        if cached_meta.get("normalized_trace_hash") != cached_hash:
+            raise ProviderError("Cache corruption detected (trace hash mismatch).")
+        trace_bytes = cached_trace
+        meta_text = json.dumps(cached_meta, indent=2, sort_keys=True)
+    else:
+        try:
+            strategy_payload = load_trace_strategy_payload(strategy_path)
+        except StrategyBriefTraceDataError as exc:
+            raise ProviderError(str(exc)) from exc
+
+        if strategy_payload.get("as_of") != as_of:
+            raise InsufficientDataError(
+                "Strategy as_of does not match requested as_of."
+            )
+
+        coverage = strategy_coverage(strategy_payload)
+        trace_payload = build_strategy_brief_trace(
+            as_of=as_of,
+            brief_hash=brief_hash,
+            earnings_hash=earnings_hash,
+            catalysts_hash=catalysts_hash,
+            strategy_hash=strategy_hash,
+            markdown_hash=markdown_hash,
+            coverage=coverage,
+        )
+        trace_text = json.dumps(trace_payload, indent=2, sort_keys=True)
+        trace_bytes = trace_text.encode("utf-8")
+        trace_hash = strategy_brief_trace_sha256_hex(trace_bytes)
+
+        meta = build_strategy_brief_trace_meta(
+            brief_hash=brief_hash,
+            earnings_hash=earnings_hash,
+            catalysts_hash=catalysts_hash,
+            strategy_hash=strategy_hash,
+            markdown_hash=markdown_hash,
+            inputs_digest=inputs_digest,
+            trace_hash=trace_hash,
+            coverage=coverage,
+            cache_hit=bool(cache_hit),
+        )
+        meta_text = json.dumps(meta, indent=2, sort_keys=True)
+
+        paths.trace.write_bytes(trace_bytes)
+        paths.meta.write_text(meta_text, encoding="utf-8")
+
+    out_path = Path(args.out)
+    meta_out = Path(args.meta_out) if args.meta_out else out_path.with_suffix(
+        out_path.suffix + ".meta.json"
+    )
+    _check_no_clobber(out_path, args.no_clobber)
+    _check_no_clobber(meta_out, args.no_clobber)
+
+    out_path.write_bytes(trace_bytes)
+    meta_out.write_text(meta_text, encoding="utf-8")
 
     return 0
 

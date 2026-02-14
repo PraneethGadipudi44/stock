@@ -27,6 +27,8 @@ def test_packaged_resources_match_repo_files():
         "regime_earnings_meta.schema.v1.json": root / "contracts" / "regime_earnings_meta.schema.v1.json",
         "regime_brief_strategy.schema.v1.json": root / "contracts" / "regime_brief_strategy.schema.v1.json",
         "regime_brief_strategy_meta.schema.v1.json": root / "contracts" / "regime_brief_strategy_meta.schema.v1.json",
+        "regime_strategy_brief_trace.schema.v1.json": root / "contracts" / "regime_strategy_brief_trace.schema.v1.json",
+        "regime_strategy_brief_trace_meta.schema.v1.json": root / "contracts" / "regime_strategy_brief_trace_meta.schema.v1.json",
         "regime_brief.schema.v1.json": root / "contracts" / "regime_brief.schema.v1.json",
         "regime_brief_meta.schema.v1.json": root / "contracts" / "regime_brief_meta.schema.v1.json",
     }
