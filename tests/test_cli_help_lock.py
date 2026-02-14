@@ -33,6 +33,7 @@ def test_cli_help_snapshot_lock():
         "strategy": "help_strategy.txt",
         "trace": "help_trace.txt",
         "diff": "help_diff.txt",
+        "ingest-prices": "help_ingest_prices.txt",
     }
     for subcmd, fixture in targets.items():
         assert _run_help(subcmd) == _load_fixture(fixture)

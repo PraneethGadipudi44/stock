@@ -17,6 +17,15 @@ from .diff import diff_json
 from .engine import build_regime_snapshot
 from .explain import build_explain_payload, explain_json
 from .metrics_builder import MetricsBuildError, build_metrics_from_prices
+from .prices_adapter import (
+    NoDataError,
+    ProviderResponseError,
+    build_meta,
+    cache_paths,
+    fetch_polygon_raw,
+    normalize_polygon_raw,
+    sha256_hex,
+)
 from .models import RegimeSnapshot
 from .prices_io import PriceRow, PricesIOError, read_prices_csv, rows_to_records
 from .resources import default_config_path
@@ -47,6 +56,11 @@ class BadInputError(CliError):
 class InsufficientDataError(CliError):
     def __init__(self, message: str) -> None:
         super().__init__(message, 3)
+
+
+class ProviderError(CliError):
+    def __init__(self, message: str) -> None:
+        super().__init__(message, 4)
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -243,6 +257,44 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Fail if output file already exists.",
     )
 
+    ingest_parser = subparsers.add_parser(
+        "ingest-prices", help="Fetch daily prices and write canonical CSV"
+    )
+    ingest_parser.add_argument("--symbol", required=True, help="Ticker symbol")
+    ingest_parser.add_argument("--start", required=True, help="Start date (YYYY-MM-DD)")
+    ingest_parser.add_argument("--end", required=True, help="End date (YYYY-MM-DD)")
+    ingest_parser.add_argument("--out", required=True, help="Output CSV path")
+    ingest_parser.add_argument(
+        "--meta-out",
+        default="",
+        help="Optional output metadata JSON path",
+    )
+    ingest_parser.add_argument(
+        "--api-key-env",
+        default="POLYGON_API_KEY",
+        help="Environment variable for Polygon API key",
+    )
+    ingest_parser.add_argument(
+        "--cache-dir",
+        default=".cache/prices",
+        help="Cache directory for raw provider responses",
+    )
+    ingest_parser.add_argument(
+        "--cache-only",
+        action="store_true",
+        help="Fail if cache is missing; do not fetch.",
+    )
+    ingest_parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Refresh cached data from provider.",
+    )
+    ingest_parser.add_argument(
+        "--no-clobber",
+        action="store_true",
+        help="Fail if output file already exists.",
+    )
+
     args = parser.parse_args(argv)
     global DEBUG
     DEBUG = bool(args.debug)
@@ -262,6 +314,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             return _run_trace(args)
         if args.command == "diff":
             return _run_diff(args)
+        if args.command == "ingest-prices":
+            return _run_ingest_prices(args)
         return 1
     except CliError as exc:
         _eprint(str(exc))
@@ -557,6 +611,104 @@ def _run_diff(args: argparse.Namespace) -> int:
         _write_text(Path(args.out), output, args.no_clobber)
     else:
         print(output)
+    return 0
+
+
+def _run_ingest_prices(args: argparse.Namespace) -> int:
+    symbol = args.symbol.strip().upper()
+    if not symbol:
+        raise BadInputError("Symbol cannot be empty.")
+
+    start = _parse_date(args.start).isoformat()
+    end = _parse_date(args.end).isoformat()
+    if start > end:
+        raise BadInputError("Start date must be <= end date.")
+
+    cache_dir = Path(args.cache_dir)
+    paths = cache_paths(cache_dir, symbol, start, end)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    paths.raw.parent.mkdir(parents=True, exist_ok=True)
+
+    cache_hit = paths.raw.exists()
+    raw_bytes: Optional[bytes] = None
+
+    if args.cache_only:
+        if not cache_hit:
+            raise ProviderError("Cache miss and --cache-only set.")
+        raw_bytes = paths.raw.read_bytes()
+        cache_hit = True
+    else:
+        if cache_hit and not args.refresh:
+            raw_bytes = paths.raw.read_bytes()
+        else:
+            api_key = os.environ.get(args.api_key_env, "")
+            if not api_key:
+                raise BadInputError(
+                    f"Missing API key in environment variable {args.api_key_env}."
+                )
+            try:
+                raw_bytes = fetch_polygon_raw(symbol, start, end, api_key)
+            except ProviderResponseError as exc:
+                raise ProviderError(str(exc)) from exc
+            paths.raw.write_bytes(raw_bytes)
+            cache_hit = False
+
+    if paths.meta.exists():
+        try:
+            cached_meta = json.loads(paths.meta.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ProviderError("Cache corruption detected (meta JSON invalid).") from exc
+        raw_hash_check = sha256_hex(raw_bytes)
+        if cached_meta.get("source_hash") != raw_hash_check:
+            raise ProviderError("Cache corruption detected (raw hash mismatch).")
+
+    try:
+        csv_text, rows = normalize_polygon_raw(raw_bytes, symbol)
+    except NoDataError as exc:
+        raise InsufficientDataError(str(exc)) from exc
+    except ProviderResponseError as exc:
+        raise ProviderError(str(exc)) from exc
+
+    csv_bytes = csv_text.encode("utf-8")
+    csv_hash = sha256_hex(csv_bytes)
+    raw_hash = sha256_hex(raw_bytes)
+
+    if paths.meta.exists():
+        try:
+            cached_meta = json.loads(paths.meta.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ProviderError("Cache corruption detected (meta JSON invalid).") from exc
+        if cached_meta.get("normalized_csv_hash") != csv_hash:
+            raise ProviderError("Cache corruption detected (csv hash mismatch).")
+
+    meta = build_meta(
+        symbol=symbol,
+        start=start,
+        end=end,
+        request_canonical=paths.request_canonical,
+        cache_key=paths.cache_key,
+        endpoint=paths.endpoint,
+        raw_hash=raw_hash,
+        csv_hash=csv_hash,
+        rows=rows,
+        cache_hit=cache_hit,
+    )
+    meta_text = json.dumps(meta, indent=2, sort_keys=True)
+
+    out_path = Path(args.out)
+    meta_out = Path(args.meta_out) if args.meta_out else out_path.with_suffix(
+        out_path.suffix + ".meta.json"
+    )
+
+    _check_no_clobber(out_path, args.no_clobber)
+    _check_no_clobber(meta_out, args.no_clobber)
+
+    out_path.write_bytes(csv_bytes)
+    meta_out.write_text(meta_text, encoding="utf-8")
+
+    paths.csv.write_bytes(csv_bytes)
+    paths.meta.write_text(meta_text, encoding="utf-8")
+
     return 0
 
 

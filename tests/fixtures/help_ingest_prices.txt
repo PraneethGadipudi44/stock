@@ -1,0 +1,20 @@
+usage: cli.py ingest-prices [-h] --symbol SYMBOL --start START --end END
+                            --out OUT [--meta-out META_OUT]
+                            [--api-key-env API_KEY_ENV]
+                            [--cache-dir CACHE_DIR] [--cache-only] [--refresh]
+                            [--no-clobber]
+
+options:
+  -h, --help            show this help message and exit
+  --symbol SYMBOL       Ticker symbol
+  --start START         Start date (YYYY-MM-DD)
+  --end END             End date (YYYY-MM-DD)
+  --out OUT             Output CSV path
+  --meta-out META_OUT   Optional output metadata JSON path
+  --api-key-env API_KEY_ENV
+                        Environment variable for Polygon API key
+  --cache-dir CACHE_DIR
+                        Cache directory for raw provider responses
+  --cache-only          Fail if cache is missing; do not fetch.
+  --refresh             Refresh cached data from provider.
+  --no-clobber          Fail if output file already exists.
