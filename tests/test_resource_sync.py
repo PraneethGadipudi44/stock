@@ -19,6 +19,8 @@ def test_packaged_resources_match_repo_files():
         "regime_strategy_trace.schema.v1.json": root / "contracts" / "regime_strategy_trace.schema.v1.json",
         "regime_diff.schema.v1.json": root / "contracts" / "regime_diff.schema.v1.json",
         "regime_prices_meta.schema.v1.json": root / "contracts" / "regime_prices_meta.schema.v1.json",
+        "regime_filings_meta.schema.v1.json": root / "contracts" / "regime_filings_meta.schema.v1.json",
+        "regime_filing_record.schema.v1.json": root / "contracts" / "regime_filing_record.schema.v1.json",
     }
 
     for name, path in mapping.items():

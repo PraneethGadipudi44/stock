@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/regime_filing_record.schema.v1.json",
+  "title": "RegimeFilingRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "acceptance_datetime",
+    "accession_number",
+    "cik",
+    "filing_date",
+    "form",
+    "primary_doc",
+    "ticker",
+    "url_filing_detail"
+  ],
+  "properties": {
+    "acceptance_datetime": {
+      "type": ["string", "null"],
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    },
+    "accession_number": { "type": "string" },
+    "cik": { "type": "string", "pattern": "^\\d{10}$" },
+    "filing_date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "form": { "type": "string", "enum": ["10-K", "10-Q", "8-K"] },
+    "primary_doc": { "type": "string" },
+    "ticker": { "type": "string" },
+    "url_filing_detail": {
+      "type": "string",
+      "pattern": "^https://www\\.sec\\.gov/Archives/edgar/data/"
+    }
+  }
+}

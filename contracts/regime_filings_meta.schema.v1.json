@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/regime_filings_meta.schema.v1.json",
+  "title": "RegimeFilingsMeta",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "provider",
+    "provider_version",
+    "adapter_version",
+    "ticker",
+    "cik",
+    "start",
+    "end",
+    "forms",
+    "request_canonical",
+    "cache_key",
+    "rows",
+    "source_hash",
+    "normalized_jsonl_hash",
+    "cache_hit"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "provider": { "type": "string", "const": "edgar" },
+    "provider_version": { "type": "string", "const": "submissions+archives_v1" },
+    "adapter_version": { "type": "string", "const": "filings_adapter_v1" },
+    "ticker": { "type": "string" },
+    "cik": { "type": "string", "pattern": "^\\d{10}$" },
+    "start": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "end": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "forms": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "request_canonical": { "type": "string" },
+    "cache_key": { "type": "string" },
+    "rows": { "type": "integer", "minimum": 0 },
+    "source_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "normalized_jsonl_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "cache_hit": { "type": "boolean" }
+  }
+}

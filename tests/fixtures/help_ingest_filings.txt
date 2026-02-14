@@ -1,0 +1,19 @@
+usage: cli.py ingest-filings [-h] --ticker TICKER --start START --end END
+                             --out OUT [--meta-out META_OUT]
+                             [--cache-dir CACHE_DIR] --user-agent USER_AGENT
+                             [--cache-only] [--refresh] [--no-clobber]
+
+options:
+  -h, --help            show this help message and exit
+  --ticker TICKER       Ticker symbol
+  --start START         Start date (YYYY-MM-DD)
+  --end END             End date (YYYY-MM-DD)
+  --out OUT             Output JSONL path
+  --meta-out META_OUT   Optional output metadata JSON path
+  --cache-dir CACHE_DIR
+                        Cache directory for SEC responses
+  --user-agent USER_AGENT
+                        SEC-compliant User-Agent with contact info
+  --cache-only          Fail if cache is missing; do not fetch.
+  --refresh             Refresh cached data from provider.
+  --no-clobber          Fail if output file already exists.
