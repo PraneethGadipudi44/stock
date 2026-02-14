@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/regime_brief_strategy_meta.schema.v1.json",
+  "title": "RegimeBriefStrategyMeta",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "adapter_version",
+    "inputs",
+    "inputs_hash",
+    "normalized_strategy_hash",
+    "markdown_hash",
+    "rows",
+    "cache_hit"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "adapter_version": { "type": "string", "const": "brief_strategy_adapter_v1" },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["brief", "earnings", "catalysts"],
+      "properties": {
+        "brief": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["normalized_brief_hash"],
+          "properties": {
+            "normalized_brief_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          }
+        },
+        "earnings": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["normalized_jsonl_hash"],
+          "properties": {
+            "normalized_jsonl_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          }
+        },
+        "catalysts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["normalized_jsonl_hash"],
+          "properties": {
+            "normalized_jsonl_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          }
+        }
+      }
+    },
+    "inputs_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "normalized_strategy_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "markdown_hash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+    "rows": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signals",
+        "playbook_watchlist",
+        "playbook_event_risk",
+        "playbook_momentum"
+      ],
+      "properties": {
+        "signals": { "type": "integer", "minimum": 0 },
+        "playbook_watchlist": { "type": "integer", "minimum": 0 },
+        "playbook_event_risk": { "type": "integer", "minimum": 0 },
+        "playbook_momentum": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "cache_hit": { "type": "boolean" }
+  }
+}

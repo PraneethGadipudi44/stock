@@ -88,6 +88,22 @@ from .strategy import (
     validate_strategy_config,
 )
 from .trace import trace_json
+from .brief_strategy_adapter import (
+    StrategyBriefError,
+    StrategyBriefNoDataError,
+    build_strategy as build_brief_strategy,
+    build_meta as build_brief_strategy_meta,
+    cache_paths as brief_strategy_cache_paths,
+    inputs_hash as brief_strategy_inputs_hash,
+    load_brief as load_strategy_brief,
+    load_brief_meta as load_strategy_brief_meta,
+    load_catalysts_meta as load_strategy_catalysts_meta,
+    load_earnings_meta as load_strategy_earnings_meta,
+    render_markdown as render_brief_strategy_markdown,
+    sha256_hex as brief_strategy_sha256_hex,
+    _load_jsonl as load_strategy_jsonl,
+    _require_record_keys as require_strategy_record_keys,
+)
 
 DEBUG = False
 
@@ -483,6 +499,59 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Fail if output file already exists.",
     )
 
+    brief_strategy_parser = subparsers.add_parser(
+        "strategy-brief",
+        help="Generate a strategy from a brief and catalyst artifacts",
+    )
+    brief_strategy_parser.add_argument(
+        "--as-of", required=True, help="As-of date (YYYY-MM-DD)"
+    )
+    brief_strategy_parser.add_argument(
+        "--brief", required=True, help="Brief JSON path"
+    )
+    brief_strategy_parser.add_argument(
+        "--brief-meta", required=True, help="Brief meta JSON path"
+    )
+    brief_strategy_parser.add_argument(
+        "--earnings", required=True, help="Earnings JSONL path"
+    )
+    brief_strategy_parser.add_argument(
+        "--earnings-meta", required=True, help="Earnings meta JSON path"
+    )
+    brief_strategy_parser.add_argument(
+        "--catalysts", required=True, help="Catalysts JSONL path"
+    )
+    brief_strategy_parser.add_argument(
+        "--catalysts-meta", required=True, help="Catalysts meta JSON path"
+    )
+    brief_strategy_parser.add_argument(
+        "--out", required=True, help="Output strategy JSON path"
+    )
+    brief_strategy_parser.add_argument(
+        "--meta-out", default="", help="Optional output strategy meta JSON path"
+    )
+    brief_strategy_parser.add_argument(
+        "--render-md", default="", help="Optional output strategy markdown path"
+    )
+    brief_strategy_parser.add_argument(
+        "--cache-dir", default=".cache/strategies", help="Cache directory"
+    )
+    brief_strategy_parser.add_argument(
+        "--cache-only",
+        action="store_true",
+        help="Fail if cache is missing; do not recompute.",
+    )
+    brief_strategy_parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Recompute even if cache exists.",
+    )
+    brief_strategy_parser.add_argument(
+        "--no-clobber",
+        action="store_true",
+        help="Fail if output file already exists.",
+    )
+
     earnings_parser = subparsers.add_parser(
         "ingest-earnings",
         help="Derive an earnings calendar from prices and filings",
@@ -547,6 +616,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             return _run_ingest_catalysts(args)
         if args.command == "brief":
             return _run_brief(args)
+        if args.command == "strategy-brief":
+            return _run_strategy_brief(args)
         if args.command == "ingest-earnings":
             return _run_ingest_earnings(args)
         return 1
@@ -1379,6 +1450,171 @@ def _run_brief(args: argparse.Namespace) -> int:
     _check_no_clobber(meta_out, args.no_clobber)
 
     out_path.write_bytes(brief_bytes)
+    meta_out.write_text(meta_text, encoding="utf-8")
+
+    if render_md and markdown_text is not None:
+        md_path = Path(args.render_md)
+        _check_no_clobber(md_path, args.no_clobber)
+        md_path.write_text(markdown_text, encoding="utf-8")
+
+    return 0
+
+
+def _run_strategy_brief(args: argparse.Namespace) -> int:
+    as_of = args.as_of.strip()
+    if not as_of:
+        raise BadInputError("as_of is required.")
+
+    brief_path = Path(args.brief)
+    brief_meta_path = Path(args.brief_meta)
+    earnings_path = Path(args.earnings)
+    earnings_meta_path = Path(args.earnings_meta)
+    catalysts_path = Path(args.catalysts)
+    catalysts_meta_path = Path(args.catalysts_meta)
+
+    for path, label in [
+        (brief_path, "brief"),
+        (brief_meta_path, "brief meta"),
+        (earnings_path, "earnings"),
+        (earnings_meta_path, "earnings meta"),
+        (catalysts_path, "catalysts"),
+        (catalysts_meta_path, "catalysts meta"),
+    ]:
+        if not path.exists():
+            raise BadInputError(f"{label} file not found: {path}")
+
+    try:
+        brief_meta = load_strategy_brief_meta(brief_meta_path)
+        earnings_meta = load_strategy_earnings_meta(earnings_meta_path)
+        catalysts_meta = load_strategy_catalysts_meta(catalysts_meta_path)
+    except StrategyBriefError as exc:
+        raise BadInputError(str(exc)) from exc
+
+    brief_bytes = brief_path.read_bytes()
+    earnings_bytes = earnings_path.read_bytes()
+    catalysts_bytes = catalysts_path.read_bytes()
+
+    brief_hash = brief_strategy_sha256_hex(brief_bytes)
+    if brief_meta.get("normalized_brief_hash") != brief_hash:
+        raise ProviderError("Cache corruption detected (brief hash mismatch).")
+
+    earnings_hash = brief_strategy_sha256_hex(earnings_bytes)
+    if earnings_meta.get("normalized_jsonl_hash") != earnings_hash:
+        raise ProviderError("Cache corruption detected (earnings hash mismatch).")
+
+    catalysts_hash = brief_strategy_sha256_hex(catalysts_bytes)
+    if catalysts_meta.get("normalized_jsonl_hash") != catalysts_hash:
+        raise ProviderError("Cache corruption detected (catalysts hash mismatch).")
+
+    inputs_digest = brief_strategy_inputs_hash(
+        as_of, brief_hash, earnings_hash, catalysts_hash
+    )
+
+    cache_dir = Path(args.cache_dir)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    paths = brief_strategy_cache_paths(cache_dir, inputs_digest)
+    paths.strategy.parent.mkdir(parents=True, exist_ok=True)
+
+    cache_hit = paths.strategy.exists() and paths.meta.exists()
+    if args.cache_only and not cache_hit:
+        raise ProviderError("Cache miss and --cache-only set.")
+
+    render_md = bool(args.render_md)
+    markdown_text: Optional[str] = None
+
+    if cache_hit and not args.refresh:
+        cached_strategy = paths.strategy.read_bytes()
+        cached_meta = json.loads(paths.meta.read_text(encoding="utf-8"))
+        cached_hash = brief_strategy_sha256_hex(cached_strategy)
+        if cached_meta.get("normalized_strategy_hash") != cached_hash:
+            raise ProviderError("Cache corruption detected (strategy hash mismatch).")
+        strategy_bytes = cached_strategy
+        meta_text = json.dumps(cached_meta, indent=2, sort_keys=True)
+        if render_md:
+            cached_md = paths.markdown.read_bytes()
+            md_hash = brief_strategy_sha256_hex(cached_md)
+            if cached_meta.get("markdown_hash") != md_hash:
+                raise ProviderError("Cache corruption detected (markdown hash mismatch).")
+            markdown_text = cached_md.decode("utf-8")
+    else:
+        try:
+            brief = load_strategy_brief(brief_path)
+            earnings_records = load_strategy_jsonl(earnings_path, "Earnings")
+            catalysts_records = load_strategy_jsonl(catalysts_path, "Catalysts")
+            require_strategy_record_keys(
+                earnings_records,
+                [
+                    "ticker",
+                    "event_date",
+                    "event_type",
+                    "form",
+                    "filing_date",
+                    "acceptance_datetime",
+                    "accession_number",
+                    "url_filing_detail",
+                ],
+                "earnings_record",
+            )
+            require_strategy_record_keys(
+                catalysts_records,
+                [
+                    "ticker",
+                    "event_date",
+                    "event_type",
+                    "form",
+                    "filing_date",
+                    "acceptance_datetime",
+                    "accession_number",
+                    "url_filing_detail",
+                    "has_price_row",
+                ],
+                "catalyst_record",
+            )
+            strategy, rows_meta = build_brief_strategy(
+                as_of=as_of,
+                brief=brief,
+                earnings_records=earnings_records,
+                catalysts_records=catalysts_records,
+            )
+        except StrategyBriefNoDataError as exc:
+            raise InsufficientDataError(str(exc)) from exc
+        except StrategyBriefError as exc:
+            raise ProviderError(str(exc)) from exc
+
+        strategy_text = json.dumps(strategy, indent=2, sort_keys=True)
+        strategy_bytes = strategy_text.encode("utf-8")
+        strategy_hash = brief_strategy_sha256_hex(strategy_bytes)
+
+        markdown_hash: Optional[str] = None
+        if render_md:
+            markdown_text = render_brief_strategy_markdown(strategy)
+            markdown_hash = brief_strategy_sha256_hex(markdown_text.encode("utf-8"))
+
+        meta = build_brief_strategy_meta(
+            brief_hash=brief_hash,
+            earnings_hash=earnings_hash,
+            catalysts_hash=catalysts_hash,
+            inputs_digest=inputs_digest,
+            strategy_hash=strategy_hash,
+            markdown_hash=markdown_hash,
+            rows=rows_meta,
+            cache_hit=bool(cache_hit),
+        )
+        meta_text = json.dumps(meta, indent=2, sort_keys=True)
+
+        paths.strategy.write_bytes(strategy_bytes)
+        paths.meta.write_text(meta_text, encoding="utf-8")
+        if render_md and markdown_text is not None:
+            paths.markdown.write_text(markdown_text, encoding="utf-8")
+
+    out_path = Path(args.out)
+    meta_out = Path(args.meta_out) if args.meta_out else out_path.with_suffix(
+        out_path.suffix + ".meta.json"
+    )
+    _check_no_clobber(out_path, args.no_clobber)
+    _check_no_clobber(meta_out, args.no_clobber)
+
+    out_path.write_bytes(strategy_bytes)
     meta_out.write_text(meta_text, encoding="utf-8")
 
     if render_md and markdown_text is not None:

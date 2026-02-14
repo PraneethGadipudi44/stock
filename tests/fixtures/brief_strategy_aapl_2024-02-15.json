@@ -1,0 +1,40 @@
+{
+  "as_of": "2024-02-15",
+  "coverage": {
+    "brief_focus_count": 1,
+    "earnings_rows": 1,
+    "recent_catalysts_count": 1,
+    "signals_rows": 1,
+    "today_catalysts_count": 1
+  },
+  "playbook": {
+    "event_risk": [
+      "AAPL"
+    ],
+    "momentum": [],
+    "watchlist": [
+      "AAPL"
+    ]
+  },
+  "schema_version": 1,
+  "signals": [
+    {
+      "inputs": {
+        "earnings_event_date": null,
+        "has_catalyst_today": true,
+        "has_earnings_within_5d": false,
+        "has_recent_catalyst": true,
+        "pct_1d": 0.014577
+      },
+      "priority": "high",
+      "score": 16.4577,
+      "summary": "AAPL: 1d move +1.46% Catalyst today: 8-K Monitor for follow-through.",
+      "tags": [
+        "catalyst_recent",
+        "catalyst_today",
+        "move_1d"
+      ],
+      "ticker": "AAPL"
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/regime_brief_strategy.schema.v1.json",
+  "title": "RegimeBriefStrategy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "as_of", "signals", "playbook", "coverage"],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "as_of": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "signals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ticker",
+          "priority",
+          "score",
+          "tags",
+          "summary",
+          "inputs"
+        ],
+        "properties": {
+          "ticker": { "type": "string" },
+          "priority": { "type": "string", "enum": ["high", "medium", "low"] },
+          "score": { "type": "number" },
+          "tags": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 5,
+            "items": { "type": "string" }
+          },
+          "summary": { "type": "string", "minLength": 20, "maxLength": 240 },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pct_1d",
+              "has_catalyst_today",
+              "has_recent_catalyst",
+              "has_earnings_within_5d",
+              "earnings_event_date"
+            ],
+            "properties": {
+              "pct_1d": { "type": ["number", "null"] },
+              "has_catalyst_today": { "type": "boolean" },
+              "has_recent_catalyst": { "type": "boolean" },
+              "has_earnings_within_5d": { "type": "boolean" },
+              "earnings_event_date": {
+                "type": ["string", "null"],
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "playbook": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["watchlist", "event_risk", "momentum"],
+      "properties": {
+        "watchlist": { "type": "array", "items": { "type": "string" } },
+        "event_risk": { "type": "array", "items": { "type": "string" } },
+        "momentum": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "brief_focus_count",
+        "today_catalysts_count",
+        "recent_catalysts_count",
+        "earnings_rows",
+        "signals_rows"
+      ],
+      "properties": {
+        "brief_focus_count": { "type": "integer", "minimum": 0 },
+        "today_catalysts_count": { "type": "integer", "minimum": 0 },
+        "recent_catalysts_count": { "type": "integer", "minimum": 0 },
+        "earnings_rows": { "type": "integer", "minimum": 0 },
+        "signals_rows": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

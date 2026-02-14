@@ -31,6 +31,7 @@ def test_cli_help_snapshot_lock():
         "tune": "help_tune.txt",
         "report": "help_report.txt",
         "strategy": "help_strategy.txt",
+        "strategy-brief": "help_strategy_brief.txt",
         "trace": "help_trace.txt",
         "diff": "help_diff.txt",
         "ingest-prices": "help_ingest_prices.txt",
