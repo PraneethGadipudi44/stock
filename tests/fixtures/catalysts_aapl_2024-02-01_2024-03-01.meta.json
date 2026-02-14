@@ -1,0 +1,22 @@
+{
+  "adapter_version": "catalysts_adapter_v1",
+  "cache_hit": true,
+  "inputs": {
+    "filings": {
+      "cache_key": "7be65d7bb2e7d6e1",
+      "normalized_jsonl_hash": "885fd78333eb12491a404ec5b56f9dce31963f554b0e175f0b8f3e4e285c8133",
+      "request_canonical": "provider=edgar&ticker=AAPL&cik=0000320193&start=2024-02-01&end=2024-03-01&forms=10-K,10-Q,8-K&tickers_endpoint=/files/company_tickers.json&submissions_endpoint=/submissions/CIK0000320193.json",
+      "source_hash": "a466505e017b8e41b7c356bed1447dca2a52ab0798173527f0d025da934a80c1"
+    },
+    "prices": {
+      "cache_key": "266e142cbd6592cb",
+      "normalized_csv_hash": "2c9034d0a664a9cc7fbe6709394d741ef057542a7af522191598c980077a5cd6",
+      "request_canonical": "/v2/aggs/ticker/AAPL/range/1/day/2024-02-01/2024-03-01?adjusted=true&sort=asc&limit=50000",
+      "source_hash": "8df6a99355ae66260b9ba58f1c94f96fd34ddbe936ccbf4db3643cde19727cd8"
+    }
+  },
+  "inputs_hash": "342c840c58654c0ccfc2d648d0d7e4b48503e9d864e419009edaed099a3d690e",
+  "normalized_jsonl_hash": "30fb58099b5a30b6f19c9544a96b872b4ca06bdded69491cacb7cf921b15443e",
+  "rows": 2,
+  "schema_version": 1
+}

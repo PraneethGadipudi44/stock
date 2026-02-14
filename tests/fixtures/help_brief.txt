@@ -1,0 +1,30 @@
+usage: cli.py brief [-h] --as-of AS_OF --prices PRICES
+                    --prices-meta PRICES_META --filings FILINGS
+                    --filings-meta FILINGS_META --catalysts CATALYSTS
+                    --catalysts-meta CATALYSTS_META --out OUT
+                    [--meta-out META_OUT] [--render-md RENDER_MD]
+                    [--cache-dir CACHE_DIR] [--cache-only] [--refresh]
+                    [--no-clobber]
+
+options:
+  -h, --help            show this help message and exit
+  --as-of AS_OF         As-of date (YYYY-MM-DD)
+  --prices PRICES       Prices CSV path
+  --prices-meta PRICES_META
+                        Prices meta JSON path
+  --filings FILINGS     Filings JSONL path
+  --filings-meta FILINGS_META
+                        Filings meta JSON path
+  --catalysts CATALYSTS
+                        Catalysts JSONL path
+  --catalysts-meta CATALYSTS_META
+                        Catalysts meta JSON path
+  --out OUT             Output brief JSON path
+  --meta-out META_OUT   Optional output brief meta JSON path
+  --render-md RENDER_MD
+                        Optional output brief markdown path
+  --cache-dir CACHE_DIR
+                        Cache directory
+  --cache-only          Fail if cache is missing; do not recompute.
+  --refresh             Recompute even if cache exists.
+  --no-clobber          Fail if output file already exists.

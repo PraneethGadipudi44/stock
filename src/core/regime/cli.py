@@ -27,6 +27,22 @@ from .catalysts_adapter import (
     load_prices_meta,
     sha256_hex as catalysts_sha256_hex,
 )
+from .brief_adapter import (
+    BriefError,
+    BriefNoDataError,
+    build_brief,
+    build_meta as build_brief_meta,
+    cache_paths as brief_cache_paths,
+    inputs_hash as brief_inputs_hash,
+    load_catalysts_meta,
+    load_catalysts,
+    load_filings_meta as load_brief_filings_meta,
+    load_filings_tickers,
+    load_prices,
+    load_prices_meta as load_brief_prices_meta,
+    render_markdown,
+    sha256_hex as brief_sha256_hex,
+)
 from .engine import build_regime_snapshot
 from .explain import build_explain_payload, explain_json
 from .metrics_builder import MetricsBuildError, build_metrics_from_prices
@@ -410,6 +426,51 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Fail if output file already exists.",
     )
 
+    brief_parser = subparsers.add_parser(
+        "brief",
+        help="Generate a daily brief from prices, filings, and catalysts",
+    )
+    brief_parser.add_argument("--as-of", required=True, help="As-of date (YYYY-MM-DD)")
+    brief_parser.add_argument("--prices", required=True, help="Prices CSV path")
+    brief_parser.add_argument(
+        "--prices-meta", required=True, help="Prices meta JSON path"
+    )
+    brief_parser.add_argument("--filings", required=True, help="Filings JSONL path")
+    brief_parser.add_argument(
+        "--filings-meta", required=True, help="Filings meta JSON path"
+    )
+    brief_parser.add_argument(
+        "--catalysts", required=True, help="Catalysts JSONL path"
+    )
+    brief_parser.add_argument(
+        "--catalysts-meta", required=True, help="Catalysts meta JSON path"
+    )
+    brief_parser.add_argument("--out", required=True, help="Output brief JSON path")
+    brief_parser.add_argument(
+        "--meta-out", default="", help="Optional output brief meta JSON path"
+    )
+    brief_parser.add_argument(
+        "--render-md", default="", help="Optional output brief markdown path"
+    )
+    brief_parser.add_argument(
+        "--cache-dir", default=".cache/briefs", help="Cache directory"
+    )
+    brief_parser.add_argument(
+        "--cache-only",
+        action="store_true",
+        help="Fail if cache is missing; do not recompute.",
+    )
+    brief_parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Recompute even if cache exists.",
+    )
+    brief_parser.add_argument(
+        "--no-clobber",
+        action="store_true",
+        help="Fail if output file already exists.",
+    )
+
     args = parser.parse_args(argv)
     global DEBUG
     DEBUG = bool(args.debug)
@@ -435,6 +496,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             return _run_ingest_filings(args)
         if args.command == "ingest-catalysts":
             return _run_ingest_catalysts(args)
+        if args.command == "brief":
+            return _run_brief(args)
         return 1
     except CliError as exc:
         _eprint(str(exc))
@@ -1038,6 +1101,143 @@ def _run_ingest_catalysts(args: argparse.Namespace) -> int:
 
     if rows == 0:
         raise InsufficientDataError("No catalysts in requested join.")
+
+    return 0
+
+
+def _run_brief(args: argparse.Namespace) -> int:
+    as_of = args.as_of.strip()
+    if not as_of:
+        raise BadInputError("as_of is required.")
+
+    prices_path = Path(args.prices)
+    prices_meta_path = Path(args.prices_meta)
+    filings_path = Path(args.filings)
+    filings_meta_path = Path(args.filings_meta)
+    catalysts_path = Path(args.catalysts)
+    catalysts_meta_path = Path(args.catalysts_meta)
+
+    for path, label in [
+        (prices_path, "prices"),
+        (prices_meta_path, "prices meta"),
+        (filings_path, "filings"),
+        (filings_meta_path, "filings meta"),
+        (catalysts_path, "catalysts"),
+        (catalysts_meta_path, "catalysts meta"),
+    ]:
+        if not path.exists():
+            raise BadInputError(f"{label} file not found: {path}")
+
+    try:
+        prices_meta = load_brief_prices_meta(prices_meta_path)
+        filings_meta = load_brief_filings_meta(filings_meta_path)
+        catalysts_meta = load_catalysts_meta(catalysts_meta_path)
+    except BriefError as exc:
+        raise BadInputError(str(exc)) from exc
+
+    prices_bytes = prices_path.read_bytes()
+    filings_bytes = filings_path.read_bytes()
+    catalysts_bytes = catalysts_path.read_bytes()
+
+    prices_hash = brief_sha256_hex(prices_bytes)
+    if prices_meta.get("normalized_csv_hash") != prices_hash:
+        raise ProviderError("Cache corruption detected (prices hash mismatch).")
+
+    filings_hash = brief_sha256_hex(filings_bytes)
+    if filings_meta.get("normalized_jsonl_hash") != filings_hash:
+        raise ProviderError("Cache corruption detected (filings hash mismatch).")
+
+    catalysts_hash = brief_sha256_hex(catalysts_bytes)
+    if catalysts_meta.get("normalized_jsonl_hash") != catalysts_hash:
+        raise ProviderError("Cache corruption detected (catalysts hash mismatch).")
+
+    inputs_digest = brief_inputs_hash(prices_hash, filings_hash, catalysts_hash)
+
+    cache_dir = Path(args.cache_dir)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    paths = brief_cache_paths(cache_dir, inputs_digest)
+    paths.brief.parent.mkdir(parents=True, exist_ok=True)
+
+    cache_hit = paths.brief.exists() and paths.meta.exists()
+    if args.cache_only and not cache_hit:
+        raise ProviderError("Cache miss and --cache-only set.")
+
+    render_md = bool(args.render_md)
+    markdown_text: Optional[str] = None
+
+    if cache_hit and not args.refresh:
+        cached_brief = paths.brief.read_bytes()
+        cached_meta = json.loads(paths.meta.read_text(encoding="utf-8"))
+        cached_hash = brief_sha256_hex(cached_brief)
+        if cached_meta.get("normalized_brief_hash") != cached_hash:
+            raise ProviderError("Cache corruption detected (brief hash mismatch).")
+        brief_bytes = cached_brief
+        meta_text = json.dumps(cached_meta, indent=2, sort_keys=True)
+        if render_md:
+            cached_md = paths.markdown.read_bytes()
+            md_hash = brief_sha256_hex(cached_md)
+            if cached_meta.get("markdown_hash") != md_hash:
+                raise ProviderError("Cache corruption detected (markdown hash mismatch).")
+            markdown_text = cached_md.decode("utf-8")
+    else:
+        try:
+            prices, dates, global_dates, prices_rows = load_prices(prices_path)
+            filings_rows, filings_tickers = load_filings_tickers(filings_path)
+            catalysts = load_catalysts(catalysts_path)
+            brief, rows_meta = build_brief(
+                as_of=as_of,
+                prices=prices,
+                dates=dates,
+                global_dates=global_dates,
+                catalysts=catalysts,
+                filings_rows=filings_rows,
+                filings_tickers=filings_tickers,
+            )
+        except BriefNoDataError as exc:
+            raise InsufficientDataError(str(exc)) from exc
+        except BriefError as exc:
+            raise ProviderError(str(exc)) from exc
+
+        brief_text = json.dumps(brief, indent=2, sort_keys=True)
+        brief_bytes = brief_text.encode("utf-8")
+        brief_hash = brief_sha256_hex(brief_bytes)
+
+        markdown_hash: Optional[str] = None
+        if render_md:
+            markdown_text = render_markdown(brief)
+            markdown_hash = brief_sha256_hex(markdown_text.encode("utf-8"))
+
+        meta = build_brief_meta(
+            prices_meta=prices_meta,
+            filings_meta=filings_meta,
+            catalysts_meta=catalysts_meta,
+            inputs_digest=inputs_digest,
+            brief_hash=brief_hash,
+            markdown_hash=markdown_hash,
+            rows=rows_meta,
+            cache_hit=bool(cache_hit),
+        )
+        meta_text = json.dumps(meta, indent=2, sort_keys=True)
+
+        paths.brief.write_bytes(brief_bytes)
+        paths.meta.write_text(meta_text, encoding="utf-8")
+        if render_md and markdown_text is not None:
+            paths.markdown.write_text(markdown_text, encoding="utf-8")
+
+    out_path = Path(args.out)
+    meta_out = Path(args.meta_out) if args.meta_out else out_path.with_suffix(
+        out_path.suffix + ".meta.json"
+    )
+    _check_no_clobber(out_path, args.no_clobber)
+    _check_no_clobber(meta_out, args.no_clobber)
+
+    out_path.write_bytes(brief_bytes)
+    meta_out.write_text(meta_text, encoding="utf-8")
+
+    if render_md and markdown_text is not None:
+        md_path = Path(args.render_md)
+        _check_no_clobber(md_path, args.no_clobber)
+        md_path.write_text(markdown_text, encoding="utf-8")
 
     return 0
 

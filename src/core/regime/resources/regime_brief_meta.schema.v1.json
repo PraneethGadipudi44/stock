@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/regime_brief_meta.schema.v1.json",
+  "title": "RegimeBriefMeta",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "adapter_version",
+    "inputs",
+    "inputs_hash",
+    "normalized_brief_hash",
+    "markdown_hash",
+    "rows",
+    "cache_hit"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "adapter_version": { "type": "string", "const": "brief_adapter_v1" },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prices", "filings", "catalysts"],
+      "properties": {
+        "prices": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_hash",
+            "normalized_csv_hash",
+            "request_canonical",
+            "cache_key"
+          ],
+          "properties": {
+            "source_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "normalized_csv_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "request_canonical": { "type": "string" },
+            "cache_key": { "type": "string" }
+          }
+        },
+        "filings": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_hash",
+            "normalized_jsonl_hash",
+            "request_canonical",
+            "cache_key"
+          ],
+          "properties": {
+            "source_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "normalized_jsonl_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "request_canonical": { "type": "string" },
+            "cache_key": { "type": "string" }
+          }
+        },
+        "catalysts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["normalized_jsonl_hash"],
+          "properties": {
+            "normalized_jsonl_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          }
+        }
+      }
+    },
+    "inputs_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "normalized_brief_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "markdown_hash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+    "rows": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["focus_list", "today_catalysts", "recent_catalysts", "price_moves"],
+      "properties": {
+        "focus_list": { "type": "integer" },
+        "today_catalysts": { "type": "integer" },
+        "recent_catalysts": { "type": "integer" },
+        "price_moves": { "type": "integer" }
+      }
+    },
+    "cache_hit": { "type": "boolean" }
+  }
+}

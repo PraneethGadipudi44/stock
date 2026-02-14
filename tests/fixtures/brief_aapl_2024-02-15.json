@@ -1,0 +1,64 @@
+{
+  "as_of": "2024-02-15",
+  "data_coverage": {
+    "as_of_has_prices": true,
+    "catalysts_rows": 2,
+    "filings_rows": 2,
+    "prices_rows": 2,
+    "tickers_in_catalysts": [
+      "AAPL"
+    ],
+    "tickers_in_filings": [
+      "AAPL"
+    ],
+    "tickers_in_prices": [
+      "AAPL"
+    ]
+  },
+  "focus_list": [
+    {
+      "has_catalyst_today": true,
+      "has_recent_catalyst": true,
+      "reasons": [
+        "1d move: +1.46%",
+        "Catalyst today: 8-K",
+        "Recent catalyst: 10-Q"
+      ],
+      "score": 16.4577,
+      "ticker": "AAPL"
+    }
+  ],
+  "price_moves": [
+    {
+      "close": 192.1,
+      "pct_1d": 0.014577,
+      "pct_5d": null,
+      "ticker": "AAPL"
+    }
+  ],
+  "recent_catalysts": [
+    {
+      "acceptance_datetime": "2024-02-02T18:12:34Z",
+      "accession_number": "0000320193-24-000012",
+      "event_date": "2024-02-02",
+      "event_type": "sec_filing",
+      "filing_date": "2024-02-02",
+      "form": "10-Q",
+      "ticker": "AAPL",
+      "url_filing_detail": "https://www.sec.gov/Archives/edgar/data/320193/000032019324000012/0000320193-24-000012-index.html"
+    }
+  ],
+  "schema_version": 1,
+  "today_catalysts": [
+    {
+      "acceptance_datetime": "2024-02-15T12:00:00Z",
+      "accession_number": "0000320193-24-000045",
+      "event_date": "2024-02-15",
+      "event_type": "sec_filing",
+      "filing_date": "2024-02-15",
+      "form": "8-K",
+      "ticker": "AAPL",
+      "url_filing_detail": "https://www.sec.gov/Archives/edgar/data/320193/000032019324000045/0000320193-24-000045-index.html"
+    }
+  ]
+}
