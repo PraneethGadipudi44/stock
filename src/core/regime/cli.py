@@ -119,6 +119,19 @@ from .strategy_brief_trace_adapter import (
     sha256_hex as strategy_brief_trace_sha256_hex,
     strategy_coverage,
 )
+from .strategy_brief_trace_diff_adapter import (
+    StrategyBriefTraceDiffDataError,
+    StrategyBriefTraceDiffMetaError,
+    StrategyBriefTraceDiffNoDataError,
+    build_diff as build_strategy_brief_trace_diff,
+    build_meta as build_strategy_brief_trace_diff_meta,
+    cache_paths as strategy_brief_trace_diff_cache_paths,
+    count_nonzero_deltas,
+    inputs_hash as strategy_brief_trace_diff_inputs_hash,
+    load_trace as load_strategy_brief_trace,
+    load_trace_meta as load_strategy_brief_trace_meta,
+    sha256_hex as strategy_brief_trace_diff_sha256_hex,
+)
 
 DEBUG = False
 
@@ -392,6 +405,47 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Output diff JSON path (or '-' for stdout)",
     )
     diff_parser.add_argument(
+        "--no-clobber",
+        action="store_true",
+        help="Fail if output file already exists.",
+    )
+
+    trace_diff_parser = subparsers.add_parser(
+        "diff-trace-strategy-brief",
+        help="Compare two strategy-brief traces",
+    )
+    trace_diff_parser.add_argument(
+        "--left-trace", required=True, help="Left trace JSON path"
+    )
+    trace_diff_parser.add_argument(
+        "--left-trace-meta", required=True, help="Left trace meta JSON path"
+    )
+    trace_diff_parser.add_argument(
+        "--right-trace", required=True, help="Right trace JSON path"
+    )
+    trace_diff_parser.add_argument(
+        "--right-trace-meta", required=True, help="Right trace meta JSON path"
+    )
+    trace_diff_parser.add_argument(
+        "--out", required=True, help="Output diff JSON path"
+    )
+    trace_diff_parser.add_argument(
+        "--meta-out", default="", help="Optional output diff meta JSON path"
+    )
+    trace_diff_parser.add_argument(
+        "--cache-dir", default=".cache/diffs", help="Cache directory"
+    )
+    trace_diff_parser.add_argument(
+        "--cache-only",
+        action="store_true",
+        help="Fail if cache is missing; do not recompute.",
+    )
+    trace_diff_parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Recompute even if cache exists.",
+    )
+    trace_diff_parser.add_argument(
         "--no-clobber",
         action="store_true",
         help="Fail if output file already exists.",
@@ -684,6 +738,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             return _run_trace_strategy_brief(args)
         if args.command == "diff":
             return _run_diff(args)
+        if args.command == "diff-trace-strategy-brief":
+            return _run_diff_trace_strategy_brief(args)
         if args.command == "ingest-prices":
             return _run_ingest_prices(args)
         if args.command == "ingest-filings":
@@ -1130,6 +1186,128 @@ def _run_diff(args: argparse.Namespace) -> int:
         _write_text(Path(args.out), output, args.no_clobber)
     else:
         print(output)
+    return 0
+
+
+def _run_diff_trace_strategy_brief(args: argparse.Namespace) -> int:
+    left_trace_path = Path(args.left_trace)
+    left_meta_path = Path(args.left_trace_meta)
+    right_trace_path = Path(args.right_trace)
+    right_meta_path = Path(args.right_trace_meta)
+
+    for path, label in [
+        (left_trace_path, "left trace"),
+        (left_meta_path, "left trace meta"),
+        (right_trace_path, "right trace"),
+        (right_meta_path, "right trace meta"),
+    ]:
+        if not path.exists():
+            raise BadInputError(f"{label} file not found: {path}")
+
+    try:
+        left_meta = load_strategy_brief_trace_meta(left_meta_path)
+        right_meta = load_strategy_brief_trace_meta(right_meta_path)
+    except StrategyBriefTraceDiffMetaError as exc:
+        raise BadInputError(str(exc)) from exc
+
+    left_trace_bytes = left_trace_path.read_bytes()
+    right_trace_bytes = right_trace_path.read_bytes()
+
+    left_trace_hash = strategy_brief_trace_diff_sha256_hex(left_trace_bytes)
+    if left_meta.get("normalized_trace_hash") != left_trace_hash:
+        raise ProviderError("Cache corruption detected (left trace hash mismatch).")
+
+    right_trace_hash = strategy_brief_trace_diff_sha256_hex(right_trace_bytes)
+    if right_meta.get("normalized_trace_hash") != right_trace_hash:
+        raise ProviderError("Cache corruption detected (right trace hash mismatch).")
+
+    try:
+        left_trace = load_strategy_brief_trace(left_trace_path)
+        right_trace = load_strategy_brief_trace(right_trace_path)
+    except StrategyBriefTraceDiffNoDataError as exc:
+        raise InsufficientDataError(str(exc)) from exc
+    except StrategyBriefTraceDiffDataError as exc:
+        raise ProviderError(str(exc)) from exc
+
+    if left_trace.get("inputs_hash") != left_meta.get("inputs_hash"):
+        raise ProviderError("Cache corruption detected (left inputs_hash mismatch).")
+    if right_trace.get("inputs_hash") != right_meta.get("inputs_hash"):
+        raise ProviderError("Cache corruption detected (right inputs_hash mismatch).")
+
+    if left_trace.get("as_of") != right_trace.get("as_of"):
+        raise InsufficientDataError("Trace as_of mismatch between left and right.")
+
+    left_markdown_hash = left_trace["artifacts"]["markdown"]["markdown_hash"]
+    right_markdown_hash = right_trace["artifacts"]["markdown"]["markdown_hash"]
+
+    inputs_digest = strategy_brief_trace_diff_inputs_hash(
+        left_as_of=left_trace["as_of"],
+        left_inputs_hash=left_trace["inputs_hash"],
+        left_trace_hash=left_trace_hash,
+        left_markdown_hash=left_markdown_hash,
+        right_as_of=right_trace["as_of"],
+        right_inputs_hash=right_trace["inputs_hash"],
+        right_trace_hash=right_trace_hash,
+        right_markdown_hash=right_markdown_hash,
+    )
+
+    cache_dir = Path(args.cache_dir)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    paths = strategy_brief_trace_diff_cache_paths(cache_dir, inputs_digest)
+    paths.diff.parent.mkdir(parents=True, exist_ok=True)
+
+    cache_hit = paths.diff.exists() and paths.meta.exists()
+    if args.cache_only and not cache_hit:
+        raise ProviderError("Cache miss and --cache-only set.")
+
+    if cache_hit and not args.refresh:
+        cached_diff = paths.diff.read_bytes()
+        cached_meta = json.loads(paths.meta.read_text(encoding="utf-8"))
+        cached_hash = strategy_brief_trace_diff_sha256_hex(cached_diff)
+        if cached_meta.get("normalized_diff_hash") != cached_hash:
+            raise ProviderError("Cache corruption detected (diff hash mismatch).")
+        diff_bytes = cached_diff
+        meta_text = json.dumps(cached_meta, indent=2, sort_keys=True)
+    else:
+        diff_payload = build_strategy_brief_trace_diff(
+            left_trace=left_trace,
+            right_trace=right_trace,
+            left_trace_hash=left_trace_hash,
+            right_trace_hash=right_trace_hash,
+            inputs_digest=inputs_digest,
+        )
+        diff_text = json.dumps(diff_payload, indent=2, sort_keys=True)
+        diff_bytes = diff_text.encode("utf-8")
+        diff_hash = strategy_brief_trace_diff_sha256_hex(diff_bytes)
+
+        nonzero_deltas = count_nonzero_deltas(diff_payload["coverage_delta"])
+        meta = build_strategy_brief_trace_diff_meta(
+            left_trace_hash=left_trace_hash,
+            right_trace_hash=right_trace_hash,
+            left_inputs_hash=left_trace["inputs_hash"],
+            right_inputs_hash=right_trace["inputs_hash"],
+            left_markdown_hash=left_markdown_hash,
+            right_markdown_hash=right_markdown_hash,
+            inputs_digest=inputs_digest,
+            diff_hash=diff_hash,
+            nonzero_deltas=nonzero_deltas,
+            cache_hit=bool(cache_hit),
+        )
+        meta_text = json.dumps(meta, indent=2, sort_keys=True)
+
+        paths.diff.write_bytes(diff_bytes)
+        paths.meta.write_text(meta_text, encoding="utf-8")
+
+    out_path = Path(args.out)
+    meta_out = Path(args.meta_out) if args.meta_out else out_path.with_suffix(
+        out_path.suffix + ".meta.json"
+    )
+    _check_no_clobber(out_path, args.no_clobber)
+    _check_no_clobber(meta_out, args.no_clobber)
+
+    out_path.write_bytes(diff_bytes)
+    meta_out.write_text(meta_text, encoding="utf-8")
+
     return 0
 
 

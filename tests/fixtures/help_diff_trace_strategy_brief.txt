@@ -1,0 +1,25 @@
+usage: cli.py diff-trace-strategy-brief [-h] --left-trace LEFT_TRACE
+                                        --left-trace-meta LEFT_TRACE_META
+                                        --right-trace RIGHT_TRACE
+                                        --right-trace-meta RIGHT_TRACE_META
+                                        --out OUT [--meta-out META_OUT]
+                                        [--cache-dir CACHE_DIR] [--cache-only]
+                                        [--refresh] [--no-clobber]
+
+options:
+  -h, --help            show this help message and exit
+  --left-trace LEFT_TRACE
+                        Left trace JSON path
+  --left-trace-meta LEFT_TRACE_META
+                        Left trace meta JSON path
+  --right-trace RIGHT_TRACE
+                        Right trace JSON path
+  --right-trace-meta RIGHT_TRACE_META
+                        Right trace meta JSON path
+  --out OUT             Output diff JSON path
+  --meta-out META_OUT   Optional output diff meta JSON path
+  --cache-dir CACHE_DIR
+                        Cache directory
+  --cache-only          Fail if cache is missing; do not recompute.
+  --refresh             Recompute even if cache exists.
+  --no-clobber          Fail if output file already exists.

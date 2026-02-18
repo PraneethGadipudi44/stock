@@ -1,0 +1,22 @@
+{
+  "adapter_version": "strategy_brief_trace_diff_adapter_v1",
+  "cache_hit": false,
+  "inputs": {
+    "left": {
+      "inputs_hash": "62158e674429d2b00d6b023f59451010e6575702082bd8b14320bb08f1afe76d",
+      "markdown_hash": null,
+      "normalized_trace_hash": "244241bd7576ebe73e2eb11a0394a16538f7f11e39c6e2f1e4637e55bee379e9"
+    },
+    "right": {
+      "inputs_hash": "62158e674429d2b00d6b023f59451010e6575702082bd8b14320bb08f1afe76d",
+      "markdown_hash": null,
+      "normalized_trace_hash": "244241bd7576ebe73e2eb11a0394a16538f7f11e39c6e2f1e4637e55bee379e9"
+    }
+  },
+  "inputs_hash": "dc744c41996c26b8b3590dd1380de061de60c10aef835fab4e437bda73897453",
+  "normalized_diff_hash": "4f60995d41fb98a540e43a39667b8cb9089d8377d6e21948dcd5b94985dc18b1",
+  "rows": {
+    "nonzero_deltas_count": 0
+  },
+  "schema_version": 1
+}
