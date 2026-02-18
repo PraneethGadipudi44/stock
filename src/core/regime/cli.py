@@ -14,6 +14,10 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from .config import load_regime_config, validate_regime_config
 from .diff import diff_json
+from .diff_render import (
+    render_brief_strategy_diff,
+    render_trace_strategy_brief_diff,
+)
 from .catalysts_adapter import (
     CatalystError,
     CatalystNoDataError,
@@ -459,6 +463,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Recompute even if cache exists.",
     )
     trace_diff_parser.add_argument(
+        "--render-md", default="", help="Optional output markdown path"
+    )
+    trace_diff_parser.add_argument(
         "--no-clobber",
         action="store_true",
         help="Fail if output file already exists.",
@@ -498,6 +505,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--refresh",
         action="store_true",
         help="Recompute even if cache exists.",
+    )
+    strategy_diff_parser.add_argument(
+        "--render-md", default="", help="Optional output markdown path"
     )
     strategy_diff_parser.add_argument(
         "--no-clobber",
@@ -1324,6 +1334,7 @@ def _run_diff_trace_strategy_brief(args: argparse.Namespace) -> int:
             raise ProviderError("Cache corruption detected (diff hash mismatch).")
         diff_bytes = cached_diff
         meta_text = json.dumps(cached_meta, indent=2, sort_keys=True)
+        diff_payload = json.loads(cached_diff.decode("utf-8"))
     else:
         diff_payload = build_strategy_brief_trace_diff(
             left_trace=left_trace,
@@ -1363,6 +1374,12 @@ def _run_diff_trace_strategy_brief(args: argparse.Namespace) -> int:
 
     out_path.write_bytes(diff_bytes)
     meta_out.write_text(meta_text, encoding="utf-8")
+
+    if args.render_md:
+        md_path = Path(args.render_md)
+        _check_no_clobber(md_path, args.no_clobber)
+        md_text = render_trace_strategy_brief_diff(diff_payload)
+        md_path.write_text(md_text, encoding="utf-8")
 
     return 0
 
@@ -1462,6 +1479,7 @@ def _run_diff_strategy_brief(args: argparse.Namespace) -> int:
             raise ProviderError("Cache corruption detected (diff hash mismatch).")
         diff_bytes = cached_diff
         meta_text = json.dumps(cached_meta, indent=2, sort_keys=True)
+        diff_payload = json.loads(cached_diff.decode("utf-8"))
     else:
         diff_payload = build_brief_strategy_diff(
             left_strategy=left_strategy,
@@ -1505,6 +1523,12 @@ def _run_diff_strategy_brief(args: argparse.Namespace) -> int:
 
     out_path.write_bytes(diff_bytes)
     meta_out.write_text(meta_text, encoding="utf-8")
+
+    if args.render_md:
+        md_path = Path(args.render_md)
+        _check_no_clobber(md_path, args.no_clobber)
+        md_text = render_brief_strategy_diff(diff_payload)
+        md_path.write_text(md_text, encoding="utf-8")
 
     return 0
 

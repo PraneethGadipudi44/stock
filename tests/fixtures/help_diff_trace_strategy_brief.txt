@@ -4,7 +4,8 @@ usage: cli.py diff-trace-strategy-brief [-h] --left-trace LEFT_TRACE
                                         --right-trace-meta RIGHT_TRACE_META
                                         --out OUT [--meta-out META_OUT]
                                         [--cache-dir CACHE_DIR] [--cache-only]
-                                        [--refresh] [--no-clobber]
+                                        [--refresh] [--render-md RENDER_MD]
+                                        [--no-clobber]
 
 options:
   -h, --help            show this help message and exit
@@ -22,4 +23,6 @@ options:
                         Cache directory
   --cache-only          Fail if cache is missing; do not recompute.
   --refresh             Recompute even if cache exists.
+  --render-md RENDER_MD
+                        Optional output markdown path
   --no-clobber          Fail if output file already exists.
