@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/regime_brief_strategy_diff.schema.v1.json",
+  "title": "RegimeBriefStrategyDiff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "left",
+    "right",
+    "inputs_hash",
+    "changes",
+    "coverage_delta",
+    "summary"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "left": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["as_of", "normalized_strategy_hash", "inputs_hash", "markdown_hash"],
+      "properties": {
+        "as_of": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "normalized_strategy_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "inputs_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "markdown_hash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "right": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["as_of", "normalized_strategy_hash", "inputs_hash", "markdown_hash"],
+      "properties": {
+        "as_of": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "normalized_strategy_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "inputs_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "markdown_hash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "inputs_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "changes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["as_of_changed", "strategy_changed", "markdown_changed"],
+      "properties": {
+        "as_of_changed": { "type": "boolean" },
+        "strategy_changed": { "type": "boolean" },
+        "markdown_changed": { "type": "boolean" }
+      }
+    },
+    "coverage_delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signals_delta",
+        "watchlist_delta",
+        "event_risk_delta",
+        "momentum_delta"
+      ],
+      "properties": {
+        "signals_delta": { "type": "integer" },
+        "watchlist_delta": { "type": "integer" },
+        "event_risk_delta": { "type": "integer" },
+        "momentum_delta": { "type": "integer" }
+      }
+    },
+    "summary": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 5,
+      "items": { "type": "string" }
+    }
+  }
+}

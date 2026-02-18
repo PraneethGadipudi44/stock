@@ -132,6 +132,19 @@ from .strategy_brief_trace_diff_adapter import (
     load_trace_meta as load_strategy_brief_trace_meta,
     sha256_hex as strategy_brief_trace_diff_sha256_hex,
 )
+from .brief_strategy_diff_adapter import (
+    BriefStrategyDiffDataError,
+    BriefStrategyDiffMetaError,
+    BriefStrategyDiffNoDataError,
+    build_diff as build_brief_strategy_diff,
+    build_meta as build_brief_strategy_diff_meta,
+    cache_paths as brief_strategy_diff_cache_paths,
+    count_nonzero_deltas as brief_strategy_diff_nonzero_deltas,
+    inputs_hash as brief_strategy_diff_inputs_hash,
+    load_strategy as load_brief_strategy_payload,
+    load_strategy_meta as load_brief_strategy_meta,
+    sha256_hex as brief_strategy_diff_sha256_hex,
+)
 
 DEBUG = False
 
@@ -451,6 +464,47 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Fail if output file already exists.",
     )
 
+    strategy_diff_parser = subparsers.add_parser(
+        "diff-strategy-brief",
+        help="Compare two brief-derived strategies",
+    )
+    strategy_diff_parser.add_argument(
+        "--left-strategy", required=True, help="Left strategy JSON path"
+    )
+    strategy_diff_parser.add_argument(
+        "--left-meta", required=True, help="Left strategy meta JSON path"
+    )
+    strategy_diff_parser.add_argument(
+        "--right-strategy", required=True, help="Right strategy JSON path"
+    )
+    strategy_diff_parser.add_argument(
+        "--right-meta", required=True, help="Right strategy meta JSON path"
+    )
+    strategy_diff_parser.add_argument(
+        "--out", required=True, help="Output diff JSON path"
+    )
+    strategy_diff_parser.add_argument(
+        "--meta-out", default="", help="Optional output diff meta JSON path"
+    )
+    strategy_diff_parser.add_argument(
+        "--cache-dir", default=".cache/diffs", help="Cache directory"
+    )
+    strategy_diff_parser.add_argument(
+        "--cache-only",
+        action="store_true",
+        help="Fail if cache is missing; do not recompute.",
+    )
+    strategy_diff_parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Recompute even if cache exists.",
+    )
+    strategy_diff_parser.add_argument(
+        "--no-clobber",
+        action="store_true",
+        help="Fail if output file already exists.",
+    )
+
     ingest_parser = subparsers.add_parser(
         "ingest-prices", help="Fetch daily prices and write canonical CSV"
     )
@@ -740,6 +794,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             return _run_diff(args)
         if args.command == "diff-trace-strategy-brief":
             return _run_diff_trace_strategy_brief(args)
+        if args.command == "diff-strategy-brief":
+            return _run_diff_strategy_brief(args)
         if args.command == "ingest-prices":
             return _run_ingest_prices(args)
         if args.command == "ingest-filings":
@@ -1286,6 +1342,148 @@ def _run_diff_trace_strategy_brief(args: argparse.Namespace) -> int:
             right_trace_hash=right_trace_hash,
             left_inputs_hash=left_trace["inputs_hash"],
             right_inputs_hash=right_trace["inputs_hash"],
+            left_markdown_hash=left_markdown_hash,
+            right_markdown_hash=right_markdown_hash,
+            inputs_digest=inputs_digest,
+            diff_hash=diff_hash,
+            nonzero_deltas=nonzero_deltas,
+            cache_hit=bool(cache_hit),
+        )
+        meta_text = json.dumps(meta, indent=2, sort_keys=True)
+
+        paths.diff.write_bytes(diff_bytes)
+        paths.meta.write_text(meta_text, encoding="utf-8")
+
+    out_path = Path(args.out)
+    meta_out = Path(args.meta_out) if args.meta_out else out_path.with_suffix(
+        out_path.suffix + ".meta.json"
+    )
+    _check_no_clobber(out_path, args.no_clobber)
+    _check_no_clobber(meta_out, args.no_clobber)
+
+    out_path.write_bytes(diff_bytes)
+    meta_out.write_text(meta_text, encoding="utf-8")
+
+    return 0
+
+
+def _run_diff_strategy_brief(args: argparse.Namespace) -> int:
+    left_strategy_path = Path(args.left_strategy)
+    left_meta_path = Path(args.left_meta)
+    right_strategy_path = Path(args.right_strategy)
+    right_meta_path = Path(args.right_meta)
+
+    for path, label in [
+        (left_strategy_path, "left strategy"),
+        (left_meta_path, "left strategy meta"),
+        (right_strategy_path, "right strategy"),
+        (right_meta_path, "right strategy meta"),
+    ]:
+        if not path.exists():
+            raise BadInputError(f"{label} file not found: {path}")
+
+    try:
+        left_meta = load_brief_strategy_meta(left_meta_path)
+        right_meta = load_brief_strategy_meta(right_meta_path)
+    except BriefStrategyDiffMetaError as exc:
+        raise BadInputError(str(exc)) from exc
+
+    left_strategy_bytes = left_strategy_path.read_bytes()
+    right_strategy_bytes = right_strategy_path.read_bytes()
+
+    left_strategy_hash = brief_strategy_diff_sha256_hex(left_strategy_bytes)
+    if left_meta.get("normalized_strategy_hash") != left_strategy_hash:
+        raise ProviderError("Cache corruption detected (left strategy hash mismatch).")
+
+    right_strategy_hash = brief_strategy_diff_sha256_hex(right_strategy_bytes)
+    if right_meta.get("normalized_strategy_hash") != right_strategy_hash:
+        raise ProviderError("Cache corruption detected (right strategy hash mismatch).")
+
+    try:
+        left_strategy = load_brief_strategy_payload(left_strategy_path)
+        right_strategy = load_brief_strategy_payload(right_strategy_path)
+    except BriefStrategyDiffNoDataError as exc:
+        raise InsufficientDataError(str(exc)) from exc
+    except BriefStrategyDiffDataError as exc:
+        raise BadInputError(str(exc)) from exc
+
+    left_inputs = left_meta.get("inputs", {})
+    right_inputs = right_meta.get("inputs", {})
+
+    left_inputs_hash = brief_strategy_inputs_hash(
+        left_strategy["as_of"],
+        left_inputs["brief"]["normalized_brief_hash"],
+        left_inputs["earnings"]["normalized_jsonl_hash"],
+        left_inputs["catalysts"]["normalized_jsonl_hash"],
+    )
+    if left_meta.get("inputs_hash") != left_inputs_hash:
+        raise ProviderError("Cache corruption detected (left inputs_hash mismatch).")
+
+    right_inputs_hash = brief_strategy_inputs_hash(
+        right_strategy["as_of"],
+        right_inputs["brief"]["normalized_brief_hash"],
+        right_inputs["earnings"]["normalized_jsonl_hash"],
+        right_inputs["catalysts"]["normalized_jsonl_hash"],
+    )
+    if right_meta.get("inputs_hash") != right_inputs_hash:
+        raise ProviderError("Cache corruption detected (right inputs_hash mismatch).")
+
+    if left_strategy.get("as_of") != right_strategy.get("as_of"):
+        raise InsufficientDataError("Strategy as_of mismatch between left and right.")
+
+    left_markdown_hash = left_meta.get("markdown_hash")
+    right_markdown_hash = right_meta.get("markdown_hash")
+
+    inputs_digest = brief_strategy_diff_inputs_hash(
+        left_as_of=left_strategy["as_of"],
+        left_inputs_hash=left_inputs_hash,
+        left_strategy_hash=left_strategy_hash,
+        left_markdown_hash=left_markdown_hash,
+        right_as_of=right_strategy["as_of"],
+        right_inputs_hash=right_inputs_hash,
+        right_strategy_hash=right_strategy_hash,
+        right_markdown_hash=right_markdown_hash,
+    )
+
+    cache_dir = Path(args.cache_dir)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    paths = brief_strategy_diff_cache_paths(cache_dir, inputs_digest)
+    paths.diff.parent.mkdir(parents=True, exist_ok=True)
+
+    cache_hit = paths.diff.exists() and paths.meta.exists()
+    if args.cache_only and not cache_hit:
+        raise ProviderError("Cache miss and --cache-only set.")
+
+    if cache_hit and not args.refresh:
+        cached_diff = paths.diff.read_bytes()
+        cached_meta = json.loads(paths.meta.read_text(encoding="utf-8"))
+        cached_hash = brief_strategy_diff_sha256_hex(cached_diff)
+        if cached_meta.get("normalized_diff_hash") != cached_hash:
+            raise ProviderError("Cache corruption detected (diff hash mismatch).")
+        diff_bytes = cached_diff
+        meta_text = json.dumps(cached_meta, indent=2, sort_keys=True)
+    else:
+        diff_payload = build_brief_strategy_diff(
+            left_strategy=left_strategy,
+            right_strategy=right_strategy,
+            left_strategy_hash=left_strategy_hash,
+            right_strategy_hash=right_strategy_hash,
+            left_inputs_hash=left_inputs_hash,
+            right_inputs_hash=right_inputs_hash,
+            left_markdown_hash=left_markdown_hash,
+            right_markdown_hash=right_markdown_hash,
+            inputs_digest=inputs_digest,
+        )
+        diff_text = json.dumps(diff_payload, indent=2, sort_keys=True)
+        diff_bytes = diff_text.encode("utf-8")
+        diff_hash = brief_strategy_diff_sha256_hex(diff_bytes)
+
+        nonzero_deltas = brief_strategy_diff_nonzero_deltas(diff_payload["coverage_delta"])
+        meta = build_brief_strategy_diff_meta(
+            left_strategy_hash=left_strategy_hash,
+            right_strategy_hash=right_strategy_hash,
+            left_inputs_hash=left_inputs_hash,
+            right_inputs_hash=right_inputs_hash,
             left_markdown_hash=left_markdown_hash,
             right_markdown_hash=right_markdown_hash,
             inputs_digest=inputs_digest,

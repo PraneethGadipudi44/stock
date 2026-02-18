@@ -36,6 +36,7 @@ def test_cli_help_snapshot_lock():
         "trace-strategy-brief": "help_trace_strategy_brief.txt",
         "diff": "help_diff.txt",
         "diff-trace-strategy-brief": "help_diff_trace_strategy_brief.txt",
+        "diff-strategy-brief": "help_diff_strategy_brief.txt",
         "ingest-prices": "help_ingest_prices.txt",
         "ingest-filings": "help_ingest_filings.txt",
         "ingest-catalysts": "help_ingest_catalysts.txt",

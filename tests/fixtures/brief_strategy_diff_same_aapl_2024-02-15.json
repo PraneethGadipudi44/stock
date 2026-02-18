@@ -1,0 +1,32 @@
+{
+  "changes": {
+    "as_of_changed": false,
+    "markdown_changed": false,
+    "strategy_changed": false
+  },
+  "coverage_delta": {
+    "event_risk_delta": 0,
+    "momentum_delta": 0,
+    "signals_delta": 0,
+    "watchlist_delta": 0
+  },
+  "inputs_hash": "5001039fe9322b9eb34c86c693ed75ce43151d6ecb77c9c730297900785530c0",
+  "left": {
+    "as_of": "2024-02-15",
+    "inputs_hash": "d726b4535ab463f9ddf8ffce3f5acc0046bf1796e5eac9f7650aa47109a36f5c",
+    "markdown_hash": null,
+    "normalized_strategy_hash": "4610641d0fe02046c36babd722f08bd058d50415a7bf0cb28c74567ec6054b64"
+  },
+  "right": {
+    "as_of": "2024-02-15",
+    "inputs_hash": "d726b4535ab463f9ddf8ffce3f5acc0046bf1796e5eac9f7650aa47109a36f5c",
+    "markdown_hash": null,
+    "normalized_strategy_hash": "4610641d0fe02046c36babd722f08bd058d50415a7bf0cb28c74567ec6054b64"
+  },
+  "schema_version": 1,
+  "summary": [
+    "as_of: 2024-02-15 -> 2024-02-15",
+    "signals: +0 (right 1 vs left 1)",
+    "playbook: watchlist +0, event_risk +0, momentum +0"
+  ]
+}

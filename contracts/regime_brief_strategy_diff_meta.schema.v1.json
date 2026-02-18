@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/regime_brief_strategy_diff_meta.schema.v1.json",
+  "title": "RegimeBriefStrategyDiffMeta",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "adapter_version",
+    "inputs",
+    "inputs_hash",
+    "normalized_diff_hash",
+    "rows",
+    "cache_hit"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "adapter_version": { "type": "string", "const": "brief_strategy_diff_adapter_v1" },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["left", "right"],
+      "properties": {
+        "left": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["normalized_strategy_hash", "inputs_hash", "markdown_hash"],
+          "properties": {
+            "normalized_strategy_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "inputs_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "markdown_hash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }
+          }
+        },
+        "right": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["normalized_strategy_hash", "inputs_hash", "markdown_hash"],
+          "properties": {
+            "normalized_strategy_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "inputs_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "markdown_hash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }
+          }
+        }
+      }
+    },
+    "inputs_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "normalized_diff_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "rows": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nonzero_deltas_count"],
+      "properties": {
+        "nonzero_deltas_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "cache_hit": { "type": "boolean" }
+  }
+}
