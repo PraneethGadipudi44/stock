@@ -36,6 +36,14 @@ from .audit_manifest_adapter import (
     load_trace_meta as load_audit_trace_meta,
     sha256_hex as audit_manifest_sha256_hex,
 )
+from .verify_manifest import (
+    VerificationResult,
+    VerifyManifestDataError,
+    VerifyManifestIntegrityError,
+    VerifyManifestMetaError,
+    VerifyManifestNoDataError,
+    verify_manifest,
+)
 from .catalysts_adapter import (
     CatalystError,
     CatalystNoDataError,
@@ -594,6 +602,59 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Fail if output file already exists.",
     )
 
+    verify_parser = subparsers.add_parser(
+        "verify-manifest",
+        help="Verify audit manifest against artifacts",
+    )
+    verify_parser.add_argument("--manifest", required=True, help="Manifest JSON path")
+    verify_parser.add_argument(
+        "--manifest-meta", default="", help="Manifest meta JSON path"
+    )
+    verify_parser.add_argument("--brief", required=True, help="Brief JSON path")
+    verify_parser.add_argument("--brief-meta", required=True, help="Brief meta JSON path")
+    verify_parser.add_argument("--strategy", required=True, help="Strategy JSON path")
+    verify_parser.add_argument(
+        "--strategy-meta", required=True, help="Strategy meta JSON path"
+    )
+    verify_parser.add_argument(
+        "--trace", required=True, help="Trace strategy-brief JSON path"
+    )
+    verify_parser.add_argument(
+        "--trace-meta", required=True, help="Trace strategy-brief meta JSON path"
+    )
+    verify_parser.add_argument(
+        "--diff-strategy", required=True, help="Strategy diff JSON path"
+    )
+    verify_parser.add_argument(
+        "--diff-strategy-meta", required=True, help="Strategy diff meta JSON path"
+    )
+    verify_parser.add_argument(
+        "--diff-trace", required=True, help="Trace diff JSON path"
+    )
+    verify_parser.add_argument(
+        "--diff-trace-meta", required=True, help="Trace diff meta JSON path"
+    )
+    verify_parser.add_argument(
+        "--as-of", default="", help="Optional as-of date (YYYY-MM-DD)"
+    )
+    verify_parser.add_argument(
+        "--strategy-md", default="", help="Optional strategy markdown path"
+    )
+    verify_parser.add_argument(
+        "--diff-strategy-md", default="", help="Optional strategy diff markdown path"
+    )
+    verify_parser.add_argument(
+        "--diff-trace-md", default="", help="Optional trace diff markdown path"
+    )
+    verify_parser.add_argument(
+        "--out", default="", help="Optional verification report JSON path"
+    )
+    verify_parser.add_argument(
+        "--no-clobber",
+        action="store_true",
+        help="Fail if output file already exists.",
+    )
+
     ingest_parser = subparsers.add_parser(
         "ingest-prices", help="Fetch daily prices and write canonical CSV"
     )
@@ -887,6 +948,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             return _run_diff_strategy_brief(args)
         if args.command == "audit-manifest":
             return _run_audit_manifest(args)
+        if args.command == "verify-manifest":
+            return _run_verify_manifest(args)
         if args.command == "ingest-prices":
             return _run_ingest_prices(args)
         if args.command == "ingest-filings":
@@ -1854,6 +1917,91 @@ def _run_audit_manifest(args: argparse.Namespace) -> int:
     out_path.write_bytes(manifest_bytes)
     meta_out.write_text(meta_text, encoding="utf-8")
 
+    return 0
+
+
+def _run_verify_manifest(args: argparse.Namespace) -> int:
+    manifest_path = Path(args.manifest)
+    manifest_meta_path = (
+        Path(args.manifest_meta)
+        if args.manifest_meta
+        else manifest_path.with_suffix(manifest_path.suffix + ".meta.json")
+    )
+    brief_path = Path(args.brief)
+    brief_meta_path = Path(args.brief_meta)
+    strategy_path = Path(args.strategy)
+    strategy_meta_path = Path(args.strategy_meta)
+    trace_path = Path(args.trace)
+    trace_meta_path = Path(args.trace_meta)
+    diff_strategy_path = Path(args.diff_strategy)
+    diff_strategy_meta_path = Path(args.diff_strategy_meta)
+    diff_trace_path = Path(args.diff_trace)
+    diff_trace_meta_path = Path(args.diff_trace_meta)
+
+    for path, label in [
+        (manifest_path, "manifest"),
+        (manifest_meta_path, "manifest meta"),
+        (brief_path, "brief"),
+        (brief_meta_path, "brief meta"),
+        (strategy_path, "strategy"),
+        (strategy_meta_path, "strategy meta"),
+        (trace_path, "trace"),
+        (trace_meta_path, "trace meta"),
+        (diff_strategy_path, "diff strategy"),
+        (diff_strategy_meta_path, "diff strategy meta"),
+        (diff_trace_path, "diff trace"),
+        (diff_trace_meta_path, "diff trace meta"),
+    ]:
+        if not path.exists():
+            raise BadInputError(f"{label} file not found: {path}")
+
+    as_of = args.as_of.strip() if args.as_of else ""
+    strategy_md = Path(args.strategy_md) if args.strategy_md else None
+    diff_strategy_md = Path(args.diff_strategy_md) if args.diff_strategy_md else None
+    diff_trace_md = Path(args.diff_trace_md) if args.diff_trace_md else None
+
+    if strategy_md and not strategy_md.exists():
+        raise BadInputError(f"strategy markdown file not found: {strategy_md}")
+    if diff_strategy_md and not diff_strategy_md.exists():
+        raise BadInputError(f"strategy diff markdown file not found: {diff_strategy_md}")
+    if diff_trace_md and not diff_trace_md.exists():
+        raise BadInputError(f"trace diff markdown file not found: {diff_trace_md}")
+
+    try:
+        result: VerificationResult = verify_manifest(
+            manifest_path=manifest_path,
+            manifest_meta_path=manifest_meta_path,
+            brief_path=brief_path,
+            brief_meta_path=brief_meta_path,
+            strategy_path=strategy_path,
+            strategy_meta_path=strategy_meta_path,
+            trace_path=trace_path,
+            trace_meta_path=trace_meta_path,
+            diff_strategy_path=diff_strategy_path,
+            diff_strategy_meta_path=diff_strategy_meta_path,
+            diff_trace_path=diff_trace_path,
+            diff_trace_meta_path=diff_trace_meta_path,
+            as_of=as_of or None,
+            strategy_md_path=strategy_md,
+            diff_strategy_md_path=diff_strategy_md,
+            diff_trace_md_path=diff_trace_md,
+            write_report=bool(args.out),
+        )
+    except VerifyManifestMetaError as exc:
+        raise BadInputError(str(exc)) from exc
+    except VerifyManifestDataError as exc:
+        raise BadInputError(str(exc)) from exc
+    except VerifyManifestNoDataError as exc:
+        raise InsufficientDataError(str(exc)) from exc
+    except VerifyManifestIntegrityError as exc:
+        raise ProviderError(str(exc)) from exc
+
+    if args.out:
+        out_path = Path(args.out)
+        _check_no_clobber(out_path, args.no_clobber)
+        report = result.report or {}
+        report_text = json.dumps(report, indent=2, sort_keys=True) + "\n"
+        out_path.write_text(report_text, encoding="utf-8")
     return 0
 
 
