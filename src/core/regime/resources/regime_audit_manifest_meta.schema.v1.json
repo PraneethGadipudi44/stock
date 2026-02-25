@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/regime_audit_manifest_meta.schema.v1.json",
+  "title": "RegimeAuditManifestMeta",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "adapter_version",
+    "inputs",
+    "inputs_hash",
+    "normalized_manifest_hash",
+    "rows",
+    "cache_hit"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "adapter_version": { "type": "string", "const": "audit_manifest_adapter_v1" },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "brief",
+        "strategy",
+        "trace_strategy_brief",
+        "diff_strategy_brief",
+        "diff_trace_strategy_brief",
+        "markdown"
+      ],
+      "properties": {
+        "brief": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["normalized_brief_hash", "inputs_hash"],
+          "properties": {
+            "normalized_brief_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "inputs_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          }
+        },
+        "strategy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["normalized_strategy_hash", "inputs_hash", "markdown_hash"],
+          "properties": {
+            "normalized_strategy_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "inputs_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "markdown_hash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }
+          }
+        },
+        "trace_strategy_brief": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["normalized_trace_hash", "inputs_hash"],
+          "properties": {
+            "normalized_trace_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "inputs_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          }
+        },
+        "diff_strategy_brief": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["normalized_diff_hash", "inputs_hash"],
+          "properties": {
+            "normalized_diff_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "inputs_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          }
+        },
+        "diff_trace_strategy_brief": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["normalized_diff_hash", "inputs_hash"],
+          "properties": {
+            "normalized_diff_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "inputs_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          }
+        },
+        "markdown": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["brief_strategy_diff_md_hash", "trace_strategy_diff_md_hash"],
+          "properties": {
+            "brief_strategy_diff_md_hash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+            "trace_strategy_diff_md_hash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }
+          }
+        }
+      }
+    },
+    "inputs_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "normalized_manifest_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "rows": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_count"],
+      "properties": {
+        "artifact_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "cache_hit": { "type": "boolean" }
+  }
+}

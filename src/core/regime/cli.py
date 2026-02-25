@@ -18,6 +18,24 @@ from .diff_render import (
     render_brief_strategy_diff,
     render_trace_strategy_brief_diff,
 )
+from .audit_manifest_adapter import (
+    AuditManifestDataError,
+    AuditManifestMetaError,
+    AuditManifestNoDataError,
+    build_manifest as build_audit_manifest,
+    build_meta as build_audit_manifest_meta,
+    cache_paths as audit_manifest_cache_paths,
+    inputs_hash as audit_manifest_inputs_hash,
+    load_brief as load_audit_brief,
+    load_brief_meta as load_audit_brief_meta,
+    load_diff as load_audit_diff,
+    load_diff_meta as load_audit_diff_meta,
+    load_strategy as load_audit_strategy,
+    load_strategy_meta as load_audit_strategy_meta,
+    load_trace as load_audit_trace,
+    load_trace_meta as load_audit_trace_meta,
+    sha256_hex as audit_manifest_sha256_hex,
+)
 from .catalysts_adapter import (
     CatalystError,
     CatalystNoDataError,
@@ -515,6 +533,67 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Fail if output file already exists.",
     )
 
+    audit_parser = subparsers.add_parser(
+        "audit-manifest",
+        help="Build audit manifest from brief/strategy/trace/diffs",
+    )
+    audit_parser.add_argument("--as-of", required=True, help="As-of date (YYYY-MM-DD)")
+    audit_parser.add_argument("--brief", required=True, help="Brief JSON path")
+    audit_parser.add_argument("--brief-meta", required=True, help="Brief meta JSON path")
+    audit_parser.add_argument("--strategy", required=True, help="Strategy JSON path")
+    audit_parser.add_argument(
+        "--strategy-meta", required=True, help="Strategy meta JSON path"
+    )
+    audit_parser.add_argument(
+        "--trace", required=True, help="Trace strategy-brief JSON path"
+    )
+    audit_parser.add_argument(
+        "--trace-meta", required=True, help="Trace strategy-brief meta JSON path"
+    )
+    audit_parser.add_argument(
+        "--diff-strategy", required=True, help="Strategy diff JSON path"
+    )
+    audit_parser.add_argument(
+        "--diff-strategy-meta", required=True, help="Strategy diff meta JSON path"
+    )
+    audit_parser.add_argument(
+        "--diff-trace", required=True, help="Trace diff JSON path"
+    )
+    audit_parser.add_argument(
+        "--diff-trace-meta", required=True, help="Trace diff meta JSON path"
+    )
+    audit_parser.add_argument("--out", required=True, help="Output manifest JSON path")
+    audit_parser.add_argument(
+        "--meta-out", default="", help="Optional output manifest meta JSON path"
+    )
+    audit_parser.add_argument(
+        "--strategy-md", default="", help="Optional strategy markdown path"
+    )
+    audit_parser.add_argument(
+        "--diff-strategy-md", default="", help="Optional strategy diff markdown path"
+    )
+    audit_parser.add_argument(
+        "--diff-trace-md", default="", help="Optional trace diff markdown path"
+    )
+    audit_parser.add_argument(
+        "--cache-dir", default=".cache/manifests", help="Cache directory"
+    )
+    audit_parser.add_argument(
+        "--cache-only",
+        action="store_true",
+        help="Fail if cache is missing; do not recompute.",
+    )
+    audit_parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Recompute even if cache exists.",
+    )
+    audit_parser.add_argument(
+        "--no-clobber",
+        action="store_true",
+        help="Fail if output file already exists.",
+    )
+
     ingest_parser = subparsers.add_parser(
         "ingest-prices", help="Fetch daily prices and write canonical CSV"
     )
@@ -806,6 +885,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             return _run_diff_trace_strategy_brief(args)
         if args.command == "diff-strategy-brief":
             return _run_diff_strategy_brief(args)
+        if args.command == "audit-manifest":
+            return _run_audit_manifest(args)
         if args.command == "ingest-prices":
             return _run_ingest_prices(args)
         if args.command == "ingest-filings":
@@ -1529,6 +1610,249 @@ def _run_diff_strategy_brief(args: argparse.Namespace) -> int:
         _check_no_clobber(md_path, args.no_clobber)
         md_text = render_brief_strategy_diff(diff_payload)
         md_path.write_text(md_text, encoding="utf-8")
+
+    return 0
+
+
+def _run_audit_manifest(args: argparse.Namespace) -> int:
+    brief_path = Path(args.brief)
+    brief_meta_path = Path(args.brief_meta)
+    strategy_path = Path(args.strategy)
+    strategy_meta_path = Path(args.strategy_meta)
+    trace_path = Path(args.trace)
+    trace_meta_path = Path(args.trace_meta)
+    diff_strategy_path = Path(args.diff_strategy)
+    diff_strategy_meta_path = Path(args.diff_strategy_meta)
+    diff_trace_path = Path(args.diff_trace)
+    diff_trace_meta_path = Path(args.diff_trace_meta)
+
+    for path, label in [
+        (brief_path, "brief"),
+        (brief_meta_path, "brief meta"),
+        (strategy_path, "strategy"),
+        (strategy_meta_path, "strategy meta"),
+        (trace_path, "trace"),
+        (trace_meta_path, "trace meta"),
+        (diff_strategy_path, "diff strategy"),
+        (diff_strategy_meta_path, "diff strategy meta"),
+        (diff_trace_path, "diff trace"),
+        (diff_trace_meta_path, "diff trace meta"),
+    ]:
+        if not path.exists():
+            raise BadInputError(f"{label} file not found: {path}")
+
+    try:
+        brief_meta = load_audit_brief_meta(brief_meta_path)
+        strategy_meta = load_audit_strategy_meta(strategy_meta_path)
+        trace_meta = load_audit_trace_meta(trace_meta_path)
+        diff_strategy_meta = load_audit_diff_meta(diff_strategy_meta_path, "strategy_diff")
+        diff_trace_meta = load_audit_diff_meta(diff_trace_meta_path, "trace_diff")
+    except AuditManifestMetaError as exc:
+        raise BadInputError(str(exc)) from exc
+
+    brief_bytes = brief_path.read_bytes()
+    strategy_bytes = strategy_path.read_bytes()
+    trace_bytes = trace_path.read_bytes()
+    diff_strategy_bytes = diff_strategy_path.read_bytes()
+    diff_trace_bytes = diff_trace_path.read_bytes()
+
+    brief_hash = audit_manifest_sha256_hex(brief_bytes)
+    if brief_meta.get("normalized_brief_hash") != brief_hash:
+        raise ProviderError("Cache corruption detected (brief hash mismatch).")
+
+    strategy_hash = audit_manifest_sha256_hex(strategy_bytes)
+    if strategy_meta.get("normalized_strategy_hash") != strategy_hash:
+        raise ProviderError("Cache corruption detected (strategy hash mismatch).")
+
+    trace_hash = audit_manifest_sha256_hex(trace_bytes)
+    if trace_meta.get("normalized_trace_hash") != trace_hash:
+        raise ProviderError("Cache corruption detected (trace hash mismatch).")
+
+    diff_strategy_hash = audit_manifest_sha256_hex(diff_strategy_bytes)
+    if diff_strategy_meta.get("normalized_diff_hash") != diff_strategy_hash:
+        raise ProviderError("Cache corruption detected (diff strategy hash mismatch).")
+
+    diff_trace_hash = audit_manifest_sha256_hex(diff_trace_bytes)
+    if diff_trace_meta.get("normalized_diff_hash") != diff_trace_hash:
+        raise ProviderError("Cache corruption detected (diff trace hash mismatch).")
+
+    try:
+        brief = load_audit_brief(brief_path)
+        strategy = load_audit_strategy(strategy_path)
+        trace = load_audit_trace(trace_path)
+        diff_strategy = load_audit_diff(diff_strategy_path, "Strategy diff")
+        diff_trace = load_audit_diff(diff_trace_path, "Trace diff")
+    except AuditManifestNoDataError as exc:
+        raise InsufficientDataError(str(exc)) from exc
+    except AuditManifestDataError as exc:
+        raise BadInputError(str(exc)) from exc
+
+    as_of = args.as_of
+    if brief.get("as_of") != as_of:
+        raise InsufficientDataError("Brief as_of does not match requested as_of.")
+    if strategy.get("as_of") != as_of:
+        raise InsufficientDataError("Strategy as_of does not match requested as_of.")
+    if trace.get("as_of") != as_of:
+        raise InsufficientDataError("Trace as_of does not match requested as_of.")
+
+    if diff_strategy["left"].get("as_of") != diff_strategy["right"].get("as_of"):
+        raise InsufficientDataError("Strategy diff as_of mismatch between left and right.")
+    if diff_trace["left"].get("as_of") != diff_trace["right"].get("as_of"):
+        raise InsufficientDataError("Trace diff as_of mismatch between left and right.")
+    if diff_strategy["left"].get("as_of") != as_of:
+        raise InsufficientDataError("Strategy diff as_of does not match requested as_of.")
+    if diff_trace["left"].get("as_of") != as_of:
+        raise InsufficientDataError("Trace diff as_of does not match requested as_of.")
+
+    brief_inputs_hash_value = brief_inputs_hash(
+        as_of,
+        brief_meta["inputs"]["prices"]["normalized_csv_hash"],
+        brief_meta["inputs"]["filings"]["normalized_jsonl_hash"],
+        brief_meta["inputs"]["catalysts"]["normalized_jsonl_hash"],
+    )
+    if brief_meta.get("inputs_hash") != brief_inputs_hash_value:
+        raise ProviderError("Cache corruption detected (brief inputs_hash mismatch).")
+
+    strategy_inputs_hash_value = brief_strategy_inputs_hash(
+        as_of,
+        strategy_meta["inputs"]["brief"]["normalized_brief_hash"],
+        strategy_meta["inputs"]["earnings"]["normalized_jsonl_hash"],
+        strategy_meta["inputs"]["catalysts"]["normalized_jsonl_hash"],
+    )
+    if strategy_meta.get("inputs_hash") != strategy_inputs_hash_value:
+        raise ProviderError("Cache corruption detected (strategy inputs_hash mismatch).")
+
+    trace_inputs_hash_value = strategy_brief_trace_inputs_hash(
+        as_of,
+        trace_meta["inputs"]["brief"]["normalized_brief_hash"],
+        trace_meta["inputs"]["earnings"]["normalized_jsonl_hash"],
+        trace_meta["inputs"]["catalysts"]["normalized_jsonl_hash"],
+        trace_meta["inputs"]["strategy"]["normalized_strategy_hash"],
+        trace_meta["inputs"]["markdown"]["markdown_hash"],
+    )
+    if trace_meta.get("inputs_hash") != trace_inputs_hash_value:
+        raise ProviderError("Cache corruption detected (trace inputs_hash mismatch).")
+
+    diff_strategy_inputs_hash_value = brief_strategy_diff_inputs_hash(
+        left_as_of=diff_strategy["left"]["as_of"],
+        left_inputs_hash=diff_strategy["left"]["inputs_hash"],
+        left_strategy_hash=diff_strategy["left"]["normalized_strategy_hash"],
+        left_markdown_hash=diff_strategy["left"]["markdown_hash"],
+        right_as_of=diff_strategy["right"]["as_of"],
+        right_inputs_hash=diff_strategy["right"]["inputs_hash"],
+        right_strategy_hash=diff_strategy["right"]["normalized_strategy_hash"],
+        right_markdown_hash=diff_strategy["right"]["markdown_hash"],
+    )
+    if diff_strategy_meta.get("inputs_hash") != diff_strategy_inputs_hash_value:
+        raise ProviderError("Cache corruption detected (diff strategy inputs_hash mismatch).")
+
+    diff_trace_inputs_hash_value = strategy_brief_trace_diff_inputs_hash(
+        left_as_of=diff_trace["left"]["as_of"],
+        left_inputs_hash=diff_trace["left"]["inputs_hash"],
+        left_trace_hash=diff_trace["left"]["normalized_trace_hash"],
+        left_markdown_hash=diff_trace["left"]["artifacts"]["markdown"]["markdown_hash"],
+        right_as_of=diff_trace["right"]["as_of"],
+        right_inputs_hash=diff_trace["right"]["inputs_hash"],
+        right_trace_hash=diff_trace["right"]["normalized_trace_hash"],
+        right_markdown_hash=diff_trace["right"]["artifacts"]["markdown"]["markdown_hash"],
+    )
+    if diff_trace_meta.get("inputs_hash") != diff_trace_inputs_hash_value:
+        raise ProviderError("Cache corruption detected (diff trace inputs_hash mismatch).")
+
+    strategy_markdown_hash = strategy_meta.get("markdown_hash")
+    if args.strategy_md:
+        md_bytes = Path(args.strategy_md).read_bytes()
+        md_hash = audit_manifest_sha256_hex(md_bytes)
+        if strategy_markdown_hash != md_hash:
+            raise ProviderError("Cache corruption detected (strategy markdown hash mismatch).")
+
+    diff_strategy_md_hash: Optional[str] = None
+    if args.diff_strategy_md:
+        diff_strategy_md_hash = audit_manifest_sha256_hex(
+            Path(args.diff_strategy_md).read_bytes()
+        )
+
+    diff_trace_md_hash: Optional[str] = None
+    if args.diff_trace_md:
+        diff_trace_md_hash = audit_manifest_sha256_hex(
+            Path(args.diff_trace_md).read_bytes()
+        )
+
+    inputs_digest = audit_manifest_inputs_hash(
+        as_of=as_of,
+        brief_hash=brief_hash,
+        brief_inputs_hash_value=brief_inputs_hash_value,
+        strategy_hash=strategy_hash,
+        strategy_inputs_hash_value=strategy_inputs_hash_value,
+        strategy_markdown_hash=strategy_markdown_hash,
+        trace_hash=trace_hash,
+        trace_inputs_hash_value=trace_inputs_hash_value,
+        diff_strategy_hash=diff_strategy_hash,
+        diff_strategy_inputs_hash_value=diff_strategy_inputs_hash_value,
+        diff_trace_hash=diff_trace_hash,
+        diff_trace_inputs_hash_value=diff_trace_inputs_hash_value,
+        diff_strategy_md_hash=diff_strategy_md_hash,
+        diff_trace_md_hash=diff_trace_md_hash,
+    )
+
+    cache_dir = Path(args.cache_dir)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    paths = audit_manifest_cache_paths(cache_dir, inputs_digest)
+    paths.manifest.parent.mkdir(parents=True, exist_ok=True)
+
+    cache_hit = paths.manifest.exists() and paths.meta.exists()
+    if args.cache_only and not cache_hit:
+        raise ProviderError("Cache miss and --cache-only set.")
+
+    if cache_hit and not args.refresh:
+        cached_manifest = paths.manifest.read_bytes()
+        cached_meta = json.loads(paths.meta.read_text(encoding="utf-8"))
+        cached_hash = audit_manifest_sha256_hex(cached_manifest)
+        if cached_meta.get("normalized_manifest_hash") != cached_hash:
+            raise ProviderError("Cache corruption detected (manifest hash mismatch).")
+        manifest_bytes = cached_manifest
+        meta_text = json.dumps(cached_meta, indent=2, sort_keys=True)
+    else:
+        manifest = build_audit_manifest(
+            as_of=as_of,
+            brief_hash=brief_hash,
+            brief_inputs_hash_value=brief_inputs_hash_value,
+            strategy_hash=strategy_hash,
+            strategy_inputs_hash_value=strategy_inputs_hash_value,
+            strategy_markdown_hash=strategy_markdown_hash,
+            trace_hash=trace_hash,
+            trace_inputs_hash_value=trace_inputs_hash_value,
+            diff_strategy_hash=diff_strategy_hash,
+            diff_strategy_inputs_hash_value=diff_strategy_inputs_hash_value,
+            diff_trace_hash=diff_trace_hash,
+            diff_trace_inputs_hash_value=diff_trace_inputs_hash_value,
+            diff_strategy_md_hash=diff_strategy_md_hash,
+            diff_trace_md_hash=diff_trace_md_hash,
+            inputs_digest=inputs_digest,
+        )
+        manifest_text = json.dumps(manifest, indent=2, sort_keys=True)
+        manifest_bytes = manifest_text.encode("utf-8")
+        manifest_hash = audit_manifest_sha256_hex(manifest_bytes)
+        meta = build_audit_manifest_meta(
+            manifest=manifest,
+            inputs_digest=inputs_digest,
+            manifest_hash=manifest_hash,
+            cache_hit=bool(cache_hit),
+        )
+        meta_text = json.dumps(meta, indent=2, sort_keys=True)
+
+        paths.manifest.write_bytes(manifest_bytes)
+        paths.meta.write_text(meta_text, encoding="utf-8")
+
+    out_path = Path(args.out)
+    meta_out = Path(args.meta_out) if args.meta_out else out_path.with_suffix(
+        out_path.suffix + ".meta.json"
+    )
+    _check_no_clobber(out_path, args.no_clobber)
+    _check_no_clobber(meta_out, args.no_clobber)
+
+    out_path.write_bytes(manifest_bytes)
+    meta_out.write_text(meta_text, encoding="utf-8")
 
     return 0
 

@@ -1,0 +1,37 @@
+{
+  "adapter_version": "audit_manifest_adapter_v1",
+  "cache_hit": false,
+  "inputs": {
+    "brief": {
+      "inputs_hash": "4149624603d01f3070676a44029d292266fbc32815fd6fbdb2de3c69320a7299",
+      "normalized_brief_hash": "835c27224cda25982b967974a888ccf46307b1210de7cd0493f7ffaae335ee53"
+    },
+    "diff_strategy_brief": {
+      "inputs_hash": "5001039fe9322b9eb34c86c693ed75ce43151d6ecb77c9c730297900785530c0",
+      "normalized_diff_hash": "f49cd1b0eb04fb4a89b27fffa56339782726d60f1498e27eaf1b21d94bf31b0b"
+    },
+    "diff_trace_strategy_brief": {
+      "inputs_hash": "dc744c41996c26b8b3590dd1380de061de60c10aef835fab4e437bda73897453",
+      "normalized_diff_hash": "4f60995d41fb98a540e43a39667b8cb9089d8377d6e21948dcd5b94985dc18b1"
+    },
+    "markdown": {
+      "brief_strategy_diff_md_hash": "4778d416d611453b88a6f2f6df9183eb0fbb3ab49332a47c524b282571dbdff0",
+      "trace_strategy_diff_md_hash": "bb050c895efe258f7e64c2fb5ddacfed57d3a79d0e8826963a7725bff81b91d5"
+    },
+    "strategy": {
+      "inputs_hash": "d726b4535ab463f9ddf8ffce3f5acc0046bf1796e5eac9f7650aa47109a36f5c",
+      "markdown_hash": null,
+      "normalized_strategy_hash": "4610641d0fe02046c36babd722f08bd058d50415a7bf0cb28c74567ec6054b64"
+    },
+    "trace_strategy_brief": {
+      "inputs_hash": "62158e674429d2b00d6b023f59451010e6575702082bd8b14320bb08f1afe76d",
+      "normalized_trace_hash": "244241bd7576ebe73e2eb11a0394a16538f7f11e39c6e2f1e4637e55bee379e9"
+    }
+  },
+  "inputs_hash": "558f667b1ece13d02ec594beff2af14116549ba0599ed9ef2311520544565589",
+  "normalized_manifest_hash": "074e7fa851e2758879634f3ddd3d8d199d66d8dbaf0612c6fcbfb16489d3c7dc",
+  "rows": {
+    "artifact_count": 6
+  },
+  "schema_version": 1
+}

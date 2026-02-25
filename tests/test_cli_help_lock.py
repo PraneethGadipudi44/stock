@@ -42,6 +42,7 @@ def test_cli_help_snapshot_lock():
         "ingest-catalysts": "help_ingest_catalysts.txt",
         "ingest-earnings": "help_ingest_earnings.txt",
         "brief": "help_brief.txt",
+        "audit-manifest": "help_audit_manifest.txt",
     }
     for subcmd, fixture in targets.items():
         assert _run_help(subcmd) == _load_fixture(fixture)

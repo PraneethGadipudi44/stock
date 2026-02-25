@@ -35,6 +35,8 @@ def test_packaged_resources_match_repo_files():
         "regime_brief_strategy_diff_meta.schema.v1.json": root / "contracts" / "regime_brief_strategy_diff_meta.schema.v1.json",
         "regime_brief.schema.v1.json": root / "contracts" / "regime_brief.schema.v1.json",
         "regime_brief_meta.schema.v1.json": root / "contracts" / "regime_brief_meta.schema.v1.json",
+        "regime_audit_manifest.schema.v1.json": root / "contracts" / "regime_audit_manifest.schema.v1.json",
+        "regime_audit_manifest_meta.schema.v1.json": root / "contracts" / "regime_audit_manifest_meta.schema.v1.json",
     }
 
     for name, path in mapping.items():
