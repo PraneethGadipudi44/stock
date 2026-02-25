@@ -53,6 +53,25 @@ Store directory can also be provided via:
 
 - `EDS_REGIME_STORE_DIR=/path/to/store`
 
+## Audit Chain (Deterministic)
+The audit chain is fully derived and hash-locked. Typical flow:
+
+1. `brief` (brief.json + meta)
+2. `strategy-brief`
+3. `trace-strategy-brief`
+4. `diff-strategy-brief` and `diff-trace-strategy-brief`
+5. `audit-manifest`
+6. `verify-manifest`
+7. `bundle-manifest` (portable bundle)
+
+Minimal commands:
+
+```bash
+eds-regime audit-manifest --as-of YYYY-MM-DD --brief ... --brief-meta ... --strategy ... --strategy-meta ... --trace ... --trace-meta ... --diff-strategy ... --diff-strategy-meta ... --diff-trace ... --diff-trace-meta ... --out manifest.json
+eds-regime verify-manifest --manifest manifest.json --brief ... --brief-meta ... --strategy ... --strategy-meta ... --trace ... --trace-meta ... --diff-strategy ... --diff-strategy-meta ... --diff-trace ... --diff-trace-meta ...
+eds-regime bundle-manifest --manifest manifest.json --manifest-meta manifest.json.meta.json --brief ... --brief-meta ... --strategy ... --strategy-meta ... --trace ... --trace-meta ... --diff-strategy ... --diff-strategy-meta ... --diff-trace ... --diff-trace-meta ... --out audit_bundle.zip
+```
+
 ## Prices CSV Format
 Long format CSV with headers:
 
