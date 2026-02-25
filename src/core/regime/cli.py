@@ -217,7 +217,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         action="store_true",
         help="Print version and exit.",
     )
-    subparsers = parser.add_subparsers(dest="command")
+    subparsers = parser.add_subparsers(dest="command", required=False)
 
     snapshot_parser = subparsers.add_parser("snapshot", help="Build a regime snapshot")
     snapshot_parser.add_argument("--cfg", default="", help="Path to regime config")
