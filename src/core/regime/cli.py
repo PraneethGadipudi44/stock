@@ -12,6 +12,7 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
+from core import __version__ as CORE_VERSION
 from .config import load_regime_config, validate_regime_config
 from .diff import diff_json
 from .diff_render import (
@@ -211,7 +212,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         action="store_true",
         help="Enable debug output (stack traces and config path).",
     )
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    parser.add_argument(
+        "--version",
+        action="store_true",
+        help="Print version and exit.",
+    )
+    subparsers = parser.add_subparsers(dest="command")
 
     snapshot_parser = subparsers.add_parser("snapshot", help="Build a regime snapshot")
     snapshot_parser.add_argument("--cfg", default="", help="Path to regime config")
@@ -977,6 +983,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     args = parser.parse_args(argv)
     global DEBUG
     DEBUG = bool(args.debug)
+
+    if getattr(args, "version", False):
+        sys.stdout.write(f"Regime Engine v{CORE_VERSION}\n")
+        return 0
+
+    if not args.command:
+        parser.error("the following arguments are required: command")
 
     try:
         if args.command == "snapshot":
