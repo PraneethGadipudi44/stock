@@ -44,6 +44,10 @@ from .verify_manifest import (
     VerifyManifestNoDataError,
     verify_manifest,
 )
+from .bundle_manifest import (
+    bundle_manifest,
+    expected_bundle_entries,
+)
 from .catalysts_adapter import (
     CatalystError,
     CatalystNoDataError,
@@ -655,6 +659,55 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Fail if output file already exists.",
     )
 
+    bundle_parser = subparsers.add_parser(
+        "bundle-manifest",
+        help="Bundle manifest and artifacts into a deterministic zip",
+    )
+    bundle_parser.add_argument("--manifest", required=True, help="Manifest JSON path")
+    bundle_parser.add_argument(
+        "--manifest-meta", required=True, help="Manifest meta JSON path"
+    )
+    bundle_parser.add_argument("--brief", required=True, help="Brief JSON path")
+    bundle_parser.add_argument("--brief-meta", required=True, help="Brief meta JSON path")
+    bundle_parser.add_argument("--strategy", required=True, help="Strategy JSON path")
+    bundle_parser.add_argument(
+        "--strategy-meta", required=True, help="Strategy meta JSON path"
+    )
+    bundle_parser.add_argument(
+        "--trace", required=True, help="Trace strategy-brief JSON path"
+    )
+    bundle_parser.add_argument(
+        "--trace-meta", required=True, help="Trace strategy-brief meta JSON path"
+    )
+    bundle_parser.add_argument(
+        "--diff-strategy", required=True, help="Strategy diff JSON path"
+    )
+    bundle_parser.add_argument(
+        "--diff-strategy-meta", required=True, help="Strategy diff meta JSON path"
+    )
+    bundle_parser.add_argument(
+        "--diff-trace", required=True, help="Trace diff JSON path"
+    )
+    bundle_parser.add_argument(
+        "--diff-trace-meta", required=True, help="Trace diff meta JSON path"
+    )
+    bundle_parser.add_argument(
+        "--strategy-md", default="", help="Optional strategy markdown path"
+    )
+    bundle_parser.add_argument(
+        "--diff-strategy-md", default="", help="Optional strategy diff markdown path"
+    )
+    bundle_parser.add_argument(
+        "--diff-trace-md", default="", help="Optional trace diff markdown path"
+    )
+    bundle_parser.add_argument("--as-of", default="", help="Optional as-of date")
+    bundle_parser.add_argument("--out", required=True, help="Output bundle zip path")
+    bundle_parser.add_argument(
+        "--no-clobber",
+        action="store_true",
+        help="Fail if output file already exists.",
+    )
+
     ingest_parser = subparsers.add_parser(
         "ingest-prices", help="Fetch daily prices and write canonical CSV"
     )
@@ -950,6 +1003,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             return _run_audit_manifest(args)
         if args.command == "verify-manifest":
             return _run_verify_manifest(args)
+        if args.command == "bundle-manifest":
+            return _run_bundle_manifest(args)
         if args.command == "ingest-prices":
             return _run_ingest_prices(args)
         if args.command == "ingest-filings":
@@ -2002,6 +2057,84 @@ def _run_verify_manifest(args: argparse.Namespace) -> int:
         report = result.report or {}
         report_text = json.dumps(report, indent=2, sort_keys=True) + "\n"
         out_path.write_text(report_text, encoding="utf-8")
+    return 0
+
+
+def _run_bundle_manifest(args: argparse.Namespace) -> int:
+    manifest_path = Path(args.manifest)
+    manifest_meta_path = Path(args.manifest_meta)
+    brief_path = Path(args.brief)
+    brief_meta_path = Path(args.brief_meta)
+    strategy_path = Path(args.strategy)
+    strategy_meta_path = Path(args.strategy_meta)
+    trace_path = Path(args.trace)
+    trace_meta_path = Path(args.trace_meta)
+    diff_strategy_path = Path(args.diff_strategy)
+    diff_strategy_meta_path = Path(args.diff_strategy_meta)
+    diff_trace_path = Path(args.diff_trace)
+    diff_trace_meta_path = Path(args.diff_trace_meta)
+    out_path = Path(args.out)
+
+    for path, label in [
+        (manifest_path, "manifest"),
+        (manifest_meta_path, "manifest meta"),
+        (brief_path, "brief"),
+        (brief_meta_path, "brief meta"),
+        (strategy_path, "strategy"),
+        (strategy_meta_path, "strategy meta"),
+        (trace_path, "trace"),
+        (trace_meta_path, "trace meta"),
+        (diff_strategy_path, "diff strategy"),
+        (diff_strategy_meta_path, "diff strategy meta"),
+        (diff_trace_path, "diff trace"),
+        (diff_trace_meta_path, "diff trace meta"),
+    ]:
+        if not path.exists():
+            raise BadInputError(f"{label} file not found: {path}")
+
+    strategy_md = Path(args.strategy_md) if args.strategy_md else None
+    diff_strategy_md = Path(args.diff_strategy_md) if args.diff_strategy_md else None
+    diff_trace_md = Path(args.diff_trace_md) if args.diff_trace_md else None
+
+    for path, label in [
+        (strategy_md, "strategy markdown"),
+        (diff_strategy_md, "strategy diff markdown"),
+        (diff_trace_md, "trace diff markdown"),
+    ]:
+        if path is not None and not path.exists():
+            raise BadInputError(f"{label} file not found: {path}")
+
+    _check_no_clobber(out_path, args.no_clobber)
+
+    try:
+        bundle_manifest(
+            manifest=manifest_path,
+            manifest_meta=manifest_meta_path,
+            brief=brief_path,
+            brief_meta=brief_meta_path,
+            strategy=strategy_path,
+            strategy_meta=strategy_meta_path,
+            trace=trace_path,
+            trace_meta=trace_meta_path,
+            diff_strategy=diff_strategy_path,
+            diff_strategy_meta=diff_strategy_meta_path,
+            diff_trace=diff_trace_path,
+            diff_trace_meta=diff_trace_meta_path,
+            out_path=out_path,
+            as_of=args.as_of or None,
+            strategy_md=strategy_md,
+            diff_strategy_md=diff_strategy_md,
+            diff_trace_md=diff_trace_md,
+        )
+    except VerifyManifestMetaError as exc:
+        raise BadInputError(str(exc)) from exc
+    except VerifyManifestDataError as exc:
+        raise BadInputError(str(exc)) from exc
+    except VerifyManifestNoDataError as exc:
+        raise InsufficientDataError(str(exc)) from exc
+    except VerifyManifestIntegrityError as exc:
+        raise ProviderError(str(exc)) from exc
+
     return 0
 
 

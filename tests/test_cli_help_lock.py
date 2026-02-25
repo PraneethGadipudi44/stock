@@ -44,6 +44,7 @@ def test_cli_help_snapshot_lock():
         "brief": "help_brief.txt",
         "audit-manifest": "help_audit_manifest.txt",
         "verify-manifest": "help_verify_manifest.txt",
+        "bundle-manifest": "help_bundle_manifest.txt",
     }
     for subcmd, fixture in targets.items():
         assert _run_help(subcmd) == _load_fixture(fixture)

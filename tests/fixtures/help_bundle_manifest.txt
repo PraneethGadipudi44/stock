@@ -1,0 +1,45 @@
+usage: cli.py bundle-manifest [-h] --manifest MANIFEST
+                              --manifest-meta MANIFEST_META --brief BRIEF
+                              --brief-meta BRIEF_META --strategy STRATEGY
+                              --strategy-meta STRATEGY_META --trace TRACE
+                              --trace-meta TRACE_META
+                              --diff-strategy DIFF_STRATEGY
+                              --diff-strategy-meta DIFF_STRATEGY_META
+                              --diff-trace DIFF_TRACE
+                              --diff-trace-meta DIFF_TRACE_META
+                              [--strategy-md STRATEGY_MD]
+                              [--diff-strategy-md DIFF_STRATEGY_MD]
+                              [--diff-trace-md DIFF_TRACE_MD] [--as-of AS_OF]
+                              --out OUT [--no-clobber]
+
+options:
+  -h, --help            show this help message and exit
+  --manifest MANIFEST   Manifest JSON path
+  --manifest-meta MANIFEST_META
+                        Manifest meta JSON path
+  --brief BRIEF         Brief JSON path
+  --brief-meta BRIEF_META
+                        Brief meta JSON path
+  --strategy STRATEGY   Strategy JSON path
+  --strategy-meta STRATEGY_META
+                        Strategy meta JSON path
+  --trace TRACE         Trace strategy-brief JSON path
+  --trace-meta TRACE_META
+                        Trace strategy-brief meta JSON path
+  --diff-strategy DIFF_STRATEGY
+                        Strategy diff JSON path
+  --diff-strategy-meta DIFF_STRATEGY_META
+                        Strategy diff meta JSON path
+  --diff-trace DIFF_TRACE
+                        Trace diff JSON path
+  --diff-trace-meta DIFF_TRACE_META
+                        Trace diff meta JSON path
+  --strategy-md STRATEGY_MD
+                        Optional strategy markdown path
+  --diff-strategy-md DIFF_STRATEGY_MD
+                        Optional strategy diff markdown path
+  --diff-trace-md DIFF_TRACE_MD
+                        Optional trace diff markdown path
+  --as-of AS_OF         Optional as-of date
+  --out OUT             Output bundle zip path
+  --no-clobber          Fail if output file already exists.
