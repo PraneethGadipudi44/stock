@@ -150,6 +150,7 @@ def test_manifest_meta_inputs_match_payload(tmp_path: Path):
     meta = _load_json(meta_path)
 
     assert meta["inputs"] == manifest["artifacts"]
+    assert meta["rows"]["artifact_count"] == len(manifest["artifacts"]) == 6
 
 
 def test_manifest_is_hash_only(tmp_path: Path):

@@ -216,7 +216,12 @@ def test_audit_manifest_asof_mismatch_exit_3(tmp_path: Path):
     tampered_meta = tmp_path / "strategy.meta.json"
     meta = json.loads(paths["strategy_meta"].read_text(encoding="utf-8"))
     meta["normalized_strategy_hash"] = sha256(tampered_strategy.read_bytes()).hexdigest()
-    meta["inputs_hash"] = meta["inputs_hash"]
+    meta["inputs_hash"] = strategy_inputs_hash(
+        payload["as_of"],
+        meta["inputs"]["brief"]["normalized_brief_hash"],
+        meta["inputs"]["earnings"]["normalized_jsonl_hash"],
+        meta["inputs"]["catalysts"]["normalized_jsonl_hash"],
+    )
     tampered_meta.write_text(json.dumps(meta, indent=2, sort_keys=True), encoding="utf-8")
 
     cmd = [
@@ -252,3 +257,4 @@ def test_audit_manifest_asof_mismatch_exit_3(tmp_path: Path):
     result = subprocess.run(cmd, capture_output=True, text=True, env=_env())
     assert result.returncode == 3
     assert "strategy as_of" in result.stderr.lower()
+from core.regime.brief_strategy_adapter import inputs_hash as strategy_inputs_hash
